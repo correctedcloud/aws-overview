@@ -56,6 +56,58 @@ func FormatDBInstances(summaries []DBInstanceSummary) string {
 	return output.String()
 }
 
+// GetDBInstancesSummary returns a brief summary of DB instances
+func GetDBInstancesSummary(summaries []DBInstanceSummary) string {
+	if len(summaries) == 0 {
+		return "No DB instances found"
+	}
+
+	// Count instances by status
+	available := 0
+	other := 0
+	
+	// Calculate average CPU and memory
+	totalCPU := 0.0
+	cpuDataPoints := 0
+	totalMemory := 0.0
+	memoryDataPoints := 0
+	
+	for _, instance := range summaries {
+		if instance.Status == "available" {
+			available++
+		} else {
+			other++
+		}
+		
+		// Add the last CPU data point if available
+		if len(instance.CPUData) > 0 {
+			totalCPU += instance.CPUData[len(instance.CPUData)-1]
+			cpuDataPoints++
+		}
+		
+		// Add the last memory data point if available
+		if len(instance.MemoryData) > 0 {
+			totalMemory += instance.MemoryData[len(instance.MemoryData)-1]
+			memoryDataPoints++
+		}
+	}
+	
+	// Calculate averages
+	var cpuAvg, memoryAvg float64
+	if cpuDataPoints > 0 {
+		cpuAvg = totalCPU / float64(cpuDataPoints)
+	}
+	if memoryDataPoints > 0 {
+		memoryAvg = totalMemory / float64(memoryDataPoints)
+	}
+	
+	return fmt.Sprintf("%d instances (%d available), Avg CPU: %s, Avg Memory: %s", 
+		len(summaries),
+		available,
+		common.FormatPercentage(cpuAvg),
+		common.FormatPercentage(memoryAvg))
+}
+
 // getStatusSymbol returns an appropriate symbol for an instance status
 func getStatusSymbol(status string) string {
 	switch status {

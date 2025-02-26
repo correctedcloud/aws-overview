@@ -53,6 +53,34 @@ func FormatLoadBalancers(summaries []LoadBalancerSummary) string {
 	return output.String()
 }
 
+// GetLoadBalancersSummary returns a brief summary of load balancers
+func GetLoadBalancersSummary(summaries []LoadBalancerSummary) string {
+	if len(summaries) == 0 {
+		return "No load balancers found"
+	}
+
+	// Count LBs and healthy/unhealthy targets
+	totalTargets := 0
+	healthyTargets := 0
+	
+	for _, lb := range summaries {
+		for _, tg := range lb.TargetGroups {
+			totalTargets += len(tg.Targets)
+			
+			for _, target := range tg.Targets {
+				if target.Status == "healthy" {
+					healthyTargets++
+				}
+			}
+		}
+	}
+
+	return fmt.Sprintf("%d LBs, %d/%d healthy targets", 
+		len(summaries), 
+		healthyTargets, 
+		totalTargets)
+}
+
 // getStatusSymbol returns an appropriate symbol for a health status
 func getStatusSymbol(status string) string {
 	switch status {

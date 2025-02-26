@@ -1,8 +1,8 @@
 # AWS Overview
 
-A Go application designed to give a quick overview of an AWS environment from the CLI.
+A Go application designed to give a quick overview of an AWS environment with a modern terminal UI.
 
-It provides small graph/sparkline overviews for various AWS services and relevant information.
+It provides small graph/sparkline overviews for various AWS services and relevant information in an interactive interface.
 
 ## Services
 
@@ -14,6 +14,13 @@ It provides small graph/sparkline overviews for various AWS services and relevan
 
 - Shows the CPU and memory usage over the past 1 hour for each RDS instance
 - Shows any recent errors in the DB error log
+
+## Features
+
+- Interactive terminal UI with tabs
+- Parallel data fetching for quick information retrieval
+- Visual sparkline graphs for numeric metrics
+- Color-coded status indicators
 
 ## Installation
 
@@ -48,6 +55,12 @@ aws-overview -alb=false
 aws-overview -h
 ```
 
+### Terminal UI Navigation
+
+- Use `Tab`, `Right Arrow`, or `l` to move to the next tab
+- Use `Shift+Tab`, `Left Arrow`, or `h` to move to the previous tab
+- Press `q` or `Ctrl+C` to quit the application
+
 ## AWS Credentials
 
 This application uses the AWS SDK for Go v2, which will look for credentials in the following order:
@@ -64,6 +77,12 @@ Make sure you have valid AWS credentials configured before using the application
 
 - Go 1.23 or higher
 - AWS account with appropriate permissions
+
+### Dependencies
+
+- [bubbletea](https://github.com/charmbracelet/bubbletea) - Terminal UI framework
+- [lipgloss](https://github.com/charmbracelet/lipgloss) - Styles for terminal applications
+- [AWS SDK for Go v2](https://github.com/aws/aws-sdk-go-v2) - AWS API client
 
 ### Running Tests
 
