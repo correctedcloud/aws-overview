@@ -34,6 +34,13 @@ var (
 		Padding(1, 2) // MaxWidth is applied in View() method to ensure borders render properly
 		
 	tabGap = lipgloss.NewStyle().Padding(0, 1)
+	
+	headerStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FAFAFA")).
+		Background(lipgloss.Color("#333333")).
+		Width(100).
+		Padding(0, 1).
+		Bold(true)
 )
 
 // Model is the main UI model
@@ -141,7 +148,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		
 		// Update viewport height and width
-		headerHeight := 2 // Title + tabs
+		headerHeight := 3 // Persistent header + Title + tabs
 		footerHeight := 1 // Help text
 		m.viewport.Width = m.width - 4  // Account for padding
 		m.viewport.Height = m.height - headerHeight - footerHeight - 2 // Account for margins
@@ -206,6 +213,11 @@ func (m Model) View() string {
 		contentWidth = 200 // Limit maximum width for readability
 	}
 
+	// Create persistent header showing current/available tabs
+	headerContent := "Current: " + m.tabs[m.activeTab] + " | Available: " + lipgloss.JoinHorizontal(lipgloss.Top, m.tabs...)
+	headerStyleCopy := headerStyle.Copy().Width(m.width)
+	persistentHeader := headerStyleCopy.Render(headerContent)
+
 	// Use viewport for scrollable content
 	viewportContent := m.viewport.View()
 
@@ -223,6 +235,7 @@ func (m Model) View() string {
 	title := titleStyle.Render("AWS Overview")
 	header := lipgloss.JoinVertical(
 		lipgloss.Left,
+		persistentHeader,
 		title,
 		tabBar,
 	)
