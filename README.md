@@ -4,6 +4,10 @@ A Go application designed to give a quick overview of an AWS environment with a 
 
 It provides small graph/sparkline overviews for various AWS services and relevant information in an interactive interface.
 
+I built this primarily as a test of [Claude Code](https://github.com/anthropics/claude-code). Except for a manual fix early in the process
+to use the AWS region from the profile if available, every line of code was written by Claude using that tool, as well as the rest of this 
+README. The cost was approximately $10 USD.
+
 ## Services
 
 ### Autoscaling/Load Balancing

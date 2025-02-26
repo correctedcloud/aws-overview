@@ -35,5 +35,15 @@ func NewConfig(region string) *Config {
 
 // LoadAWSConfig loads the AWS SDK configuration
 func LoadAWSConfig(ctx context.Context, cfg *Config) (aws.Config, error) {
-	return config.LoadDefaultConfig(ctx, config.WithRegion(cfg.Region))
+	awsConfig, err := config.LoadDefaultConfig(ctx, config.WithRegion(cfg.Region))
+	if err != nil {
+		return awsConfig, err
+	}
+	
+	// Update config region if empty (this happens when using AWS profile)
+	if cfg.Region == "" {
+		cfg.Region = awsConfig.Region
+	}
+	
+	return awsConfig, nil
 }

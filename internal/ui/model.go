@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"os"
+	
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/bubbletea"
@@ -223,7 +225,7 @@ func (m Model) View() string {
 
 	// Apply content styling with proper border rendering
 	// Use copy of style to avoid modifying the original
-	contentStyleCopy := contentStyle.Copy().Width(contentWidth)
+	contentStyleCopy := contentStyle.Width(contentWidth)
 	styledContent := contentStyleCopy.Render(viewportContent)
 
 	// Show help text at the bottom
@@ -248,6 +250,80 @@ func (m Model) View() string {
 	)
 }
 
+// getRegionFlag returns the flag emoji for a given AWS region
+func getRegionFlag(region string) string {
+	// Map AWS regions to flag emoji with location suffix
+	regionToFlag := map[string]string{
+		// North America
+		"us-east-1":      "🇺🇸",
+		"us-east-2":      "🇺🇸",
+		"us-west-1":      "🇺🇸",
+		"us-west-2":      "🇺🇸",
+		"us-gov-east-1":  "🇺🇸",
+		"us-gov-west-1":  "🇺🇸",
+		"mx-central-1":   "🇲🇽",
+		
+		// South America
+		"sa-east-1":      "🇧🇷",
+		
+		// Europe
+		"eu-west-1":      "🇮🇪",
+		"eu-west-2":      "🇬🇧",
+		"eu-west-3":      "🇫🇷",
+		"eu-central-1":   "🇩🇪",
+		"eu-central-2":   "🇨🇭",
+		"eu-south-1":     "🇮🇹",
+		"eu-south-2":     "🇪🇸",
+		"eu-north-1":     "🇸🇪",
+		
+		// Middle East
+		"me-central-1":   "🇦🇪",
+		"me-south-1":     "🇧🇭",
+		"il-central-1":   "🇮🇱",
+		
+		// Asia Pacific
+		"ap-southeast-1": "🇸🇬",
+		"ap-southeast-2": "🇦🇺",
+		"ap-southeast-3": "🇸🇬",
+		"ap-southeast-4": "🇦🇺",
+		"ap-southeast-5": "🇳🇿",
+		"ap-southeast-7": "🇹🇭",
+		"ap-east-1":      "🇭🇰",
+		"ap-south-1":     "🇮🇳",
+		"ap-south-2":     "🇮🇳",
+		"ap-northeast-1": "🇯🇵",
+		"ap-northeast-2": "🇰🇷",
+		"ap-northeast-3": "🇯🇵",
+		
+		// Canada
+		"ca-central-1":   "🇨🇦",
+		"ca-west-1":      "🇨🇦",
+		
+		// Africa
+		"af-south-1":     "🇿🇦",
+		
+		// China
+		"cn-north-1":     "🇨🇳",
+		"cn-northwest-1": "🇨🇳",
+	}
+	
+	flag, ok := regionToFlag[region]
+	if !ok {
+		return "🌐" // Default global symbol if region not found
+	}
+	
+	return flag
+}
+
+// getAWSProfile returns the current AWS profile from environment variables
+func getAWSProfile() string {
+	profile := os.Getenv("AWS_PROFILE")
+	if profile == "" {
+		profile = os.Getenv("AWS_DEFAULT_PROFILE")
+	}
+	return profile
+}
+
 // renderOverview shows a summary view
 func (m Model) renderOverview() string {
 	if (m.loadingALB && m.showALB) || (m.loadingRDS && m.showRDS) {
@@ -255,7 +331,15 @@ func (m Model) renderOverview() string {
 	}
 
 	var content string
-	content += "Region: " + m.region + "\n\n"
+	flag := getRegionFlag(m.region)
+	content += "Region: " + flag + " " + m.region + "\n"
+	
+	// Display AWS profile if set
+	profile := getAWSProfile()
+	if profile != "" {
+		content += "Profile: " + profile + "\n"
+	}
+	content += "\n"
 
 	if m.showALB {
 		if m.albErr != nil {
