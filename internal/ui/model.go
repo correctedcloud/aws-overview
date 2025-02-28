@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/correctedcloud/aws-overview/pkg/alb"
+	"github.com/correctedcloud/aws-overview/pkg/ec2"
 	"github.com/correctedcloud/aws-overview/pkg/rds"
 )
 
@@ -51,21 +52,25 @@ type Model struct {
 	viewport        viewport.Model
 	loadingALB      bool
 	loadingRDS      bool
+	loadingEC2      bool
 	loadBalancers   []alb.LoadBalancerSummary
 	dbInstances     []rds.DBInstanceSummary
+	ec2Instances    []ec2.InstanceSummary
 	albErr          error
 	rdsErr          error
+	ec2Err          error
 	width           int
 	height          int
 	showALB         bool
 	showRDS         bool
+	showEC2         bool
 	region          string
 	activeTab       int
 	tabs            []string
 }
 
 // NewModel creates a new UI model
-func NewModel(showALB, showRDS bool, region string) Model {
+func NewModel(showALB, showRDS, showEC2 bool, region string) Model {
 	// Create tabs list
 	tabs := []string{"Overview"}
 	if showALB {
@@ -73,6 +78,9 @@ func NewModel(showALB, showRDS bool, region string) Model {
 	}
 	if showRDS {
 		tabs = append(tabs, "RDS Instances")
+	}
+	if showEC2 {
+		tabs = append(tabs, "EC2 Instances")
 	}
 
 	s := spinner.New()
@@ -87,8 +95,10 @@ func NewModel(showALB, showRDS bool, region string) Model {
 		viewport:   vp,
 		loadingALB: showALB,
 		loadingRDS: showRDS,
+		loadingEC2: showEC2,
 		showALB:    showALB,
 		showRDS:    showRDS,
+		showEC2:    showEC2,
 		region:     region,
 		activeTab:  0,
 		tabs:       tabs,
@@ -107,6 +117,10 @@ func (m Model) Init() tea.Cmd {
 
 	if m.showRDS {
 		cmds = append(cmds, m.loadRDSData())
+	}
+	
+	if m.showEC2 {
+		cmds = append(cmds, m.loadEC2Data())
 	}
 
 	return tea.Batch(cmds...)
@@ -174,6 +188,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dbInstances = msg.dbInstances
 		m.rdsErr = msg.err
 		m.updateViewportContent()
+		
+	case ec2DataLoadedMsg:
+		m.loadingEC2 = false
+		m.ec2Instances = msg.instances
+		m.ec2Err = msg.err
+		m.updateViewportContent()
 	}
 
 	return m, tea.Batch(cmds...)
@@ -190,6 +210,11 @@ func (m *Model) updateViewportContent() {
 		content = m.renderALB()
 	case (m.activeTab == 1 && !m.showALB && m.showRDS) || (m.activeTab == 2 && m.showRDS): // RDS tab
 		content = m.renderRDS()
+	case (m.activeTab == 1 && !m.showALB && !m.showRDS && m.showEC2) || 
+	     (m.activeTab == 2 && !m.showALB && m.showEC2) || 
+	     (m.activeTab == 2 && !m.showRDS && m.showEC2) || 
+	     (m.activeTab == 3 && m.showEC2): // EC2 tab
+		content = m.renderEC2()
 	}
 
 	// Set the content for scrolling
@@ -326,7 +351,7 @@ func getAWSProfile() string {
 
 // renderOverview shows a summary view
 func (m Model) renderOverview() string {
-	if (m.loadingALB && m.showALB) || (m.loadingRDS && m.showRDS) {
+	if (m.loadingALB && m.showALB) || (m.loadingRDS && m.showRDS) || (m.loadingEC2 && m.showEC2) {
 		return m.spinner.View() + " Loading AWS resources..."
 	}
 
@@ -357,8 +382,16 @@ func (m Model) renderOverview() string {
 		}
 	}
 
-	if !m.showALB && !m.showRDS {
-		content += "No services selected. Use -alb=true and/or -rds=true flags."
+	if m.showEC2 {
+		if m.ec2Err != nil {
+			content += "❌ EC2 Error: " + m.ec2Err.Error() + "\n\n"
+		} else {
+			content += "✅ EC2 Instances: " + ec2.GetInstancesSummary(m.ec2Instances) + "\n\n"
+		}
+	}
+
+	if !m.showALB && !m.showRDS && !m.showEC2 {
+		content += "No services selected. Use -alb=true, -rds=true, and/or -ec2=true flags."
 	}
 
 	return content
@@ -388,4 +421,17 @@ func (m Model) renderRDS() string {
 	}
 
 	return rds.FormatDBInstances(m.dbInstances)
+}
+
+// renderEC2 shows detailed EC2 information
+func (m Model) renderEC2() string {
+	if m.loadingEC2 {
+		return m.spinner.View() + " Loading EC2 data..."
+	}
+
+	if m.ec2Err != nil {
+		return "Error loading EC2 data: " + m.ec2Err.Error()
+	}
+
+	return ec2.FormatInstances(m.ec2Instances)
 }

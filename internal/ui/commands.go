@@ -6,11 +6,13 @@ import (
 	"github.com/charmbracelet/bubbletea"
 	
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 	rdssvc "github.com/aws/aws-sdk-go-v2/service/rds"
 	
 	"github.com/correctedcloud/aws-overview/internal/config"
 	"github.com/correctedcloud/aws-overview/pkg/alb"
+	ec2pkg "github.com/correctedcloud/aws-overview/pkg/ec2"
 	"github.com/correctedcloud/aws-overview/pkg/rds"
 )
 
@@ -23,6 +25,11 @@ type albDataLoadedMsg struct {
 type rdsDataLoadedMsg struct {
 	dbInstances []rds.DBInstanceSummary
 	err         error
+}
+
+type ec2DataLoadedMsg struct {
+	instances []ec2pkg.InstanceSummary
+	err       error
 }
 
 // loadALBData is a command that loads ALB data and returns a message
@@ -74,6 +81,31 @@ func (m Model) loadRDSData() tea.Cmd {
 		return rdsDataLoadedMsg{
 			dbInstances: instances,
 			err:         err,
+		}
+	}
+}
+
+// loadEC2Data is a command that loads EC2 data and returns a message
+func (m Model) loadEC2Data() tea.Cmd {
+	return func() tea.Msg {
+		// Create context
+		ctx := context.Background()
+		
+		// Load AWS config
+		cfg := config.NewConfig(m.region)
+		awsConfig, err := config.LoadAWSConfig(ctx, cfg)
+		if err != nil {
+			return ec2DataLoadedMsg{err: err}
+		}
+		
+		// Create EC2 client
+		ec2Client := ec2pkg.NewClient(ec2.NewFromConfig(awsConfig))
+		
+		// Get instance data
+		instances, err := ec2Client.GetInstances(ctx)
+		return ec2DataLoadedMsg{
+			instances: instances,
+			err:       err,
 		}
 	}
 }
