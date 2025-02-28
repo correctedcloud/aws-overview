@@ -18,7 +18,6 @@ func (m *mockEC2API) DescribeInstances(ctx context.Context, params *ec2.Describe
 }
 
 func TestGetInstances(t *testing.T) {
-	now := time.Now()
 	tests := []struct {
 		name          string
 		mockResponses []*ec2.DescribeInstancesOutput

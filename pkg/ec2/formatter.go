@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+var timeNow = time.Now
+
 // GetInstancesSummary returns a summary of EC2 instances
 func GetInstancesSummary(instances []InstanceSummary) string {
 	running := 0
@@ -108,7 +110,7 @@ func FormatInstances(instances []InstanceSummary) string {
 
 // formatUptime formats the uptime of an instance
 func formatUptime(launchTime time.Time) string {
-	duration := time.Since(launchTime)
+	duration := timeNow().Sub(launchTime)
 	
 	days := int(duration.Hours() / 24)
 	hours := int(duration.Hours()) % 24
