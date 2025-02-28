@@ -113,14 +113,19 @@ func (c *Client) GetInstances(ctx context.Context) ([]InstanceSummary, error) {
 
 // getPlatform returns the platform of the instance
 func getPlatform(instance types.Instance) string {
-	if instance.Platform != nil {
+	// Platform is a string value (types.PlatformValues), not a pointer
+	if instance.Platform != "" {
 		return string(instance.Platform)
 	}
 	
-	// Check if it's Amazon Linux
+	// Check platform details if platform is empty
 	if instance.PlatformDetails != nil {
-		if strings.Contains(aws.ToString(instance.PlatformDetails), "Linux") {
+		details := aws.ToString(instance.PlatformDetails)
+		if strings.Contains(details, "Linux") {
 			return "Linux"
+		}
+		if strings.Contains(details, "Windows") {
+			return "Windows"
 		}
 	}
 	
