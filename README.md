@@ -1,5 +1,7 @@
 # AWS Overview
 
+[![Go Tests](https://github.com/correctedcloud/aws-overview/actions/workflows/go.yml/badge.svg)](https://github.com/correctedcloud/aws-overview/actions/workflows/go.yml)
+
 A Go application designed to give a quick overview of an AWS environment with a modern terminal UI.
 
 It provides small graph/sparkline overviews for various AWS services and relevant information in an interactive interface.
