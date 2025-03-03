@@ -95,7 +95,7 @@ func (c *Client) GetInstances(ctx context.Context) ([]InstanceSummary, error) {
 					SubnetID:         aws.ToString(instance.SubnetId),
 					SecurityGroups:   securityGroups,
 					Tags:             tags,
-					AvailabilityZone: aws.ToString(instance.Placement.AvailabilityZone),
+					AvailabilityZone: getAvailabilityZone(instance),
 				}
 
 				instances = append(instances, summary)
@@ -130,4 +130,12 @@ func getPlatform(instance types.Instance) string {
 	}
 	
 	return "Unknown"
+}
+
+// getAvailabilityZone safely returns the availability zone of the instance
+func getAvailabilityZone(instance types.Instance) string {
+	if instance.Placement == nil || instance.Placement.AvailabilityZone == nil {
+		return ""
+	}
+	return aws.ToString(instance.Placement.AvailabilityZone)
 }

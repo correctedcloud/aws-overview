@@ -4,15 +4,18 @@ A Go application designed to give a quick overview of an AWS environment with a 
 
 It provides small graph/sparkline overviews for various AWS services and relevant information in an interactive interface.
 
-I built this primarily as a test of [Claude Code](https://github.com/anthropics/claude-code). Except for a manual fix early in the process
-to use the AWS region from the profile if available, every line of code was written by Claude using that tool, as well as the rest of this 
-README. The cost was approximately $10 USD.
+I built this primarily as a test of [Claude Code](https://github.com/anthropics/claude-code) and [aider](https://github.com/Aider-AI/aider).
 
 ## Services
 
 ### Autoscaling/Load Balancing
 
 - Shows the health status for each target group, grouped by load balancer
+
+### EC2
+
+- Displays a list of EC2 instances with key information like state, type, and ID
+- Provides detailed instance information including platform, launch time, and network details
 
 ### RDS
 
@@ -50,10 +53,13 @@ aws-overview
 aws-overview -region us-west-2
 
 # Show only ALB information
-aws-overview -rds=false
+aws-overview -rds=false -ec2=false
 
 # Show only RDS information
-aws-overview -alb=false
+aws-overview -alb=false -ec2=false
+
+# Show only EC2 information
+aws-overview -alb=false -rds=false
 
 # Get help
 aws-overview -h
