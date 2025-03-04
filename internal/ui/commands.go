@@ -8,12 +8,14 @@ import (
 	
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 	rdssvc "github.com/aws/aws-sdk-go-v2/service/rds"
 	
 	"github.com/correctedcloud/aws-overview/internal/config"
 	"github.com/correctedcloud/aws-overview/pkg/alb"
 	ec2pkg "github.com/correctedcloud/aws-overview/pkg/ec2"
+	ecspkg "github.com/correctedcloud/aws-overview/pkg/ecs"
 	"github.com/correctedcloud/aws-overview/pkg/rds"
 )
 
@@ -31,6 +33,11 @@ type rdsDataLoadedMsg struct {
 type ec2DataLoadedMsg struct {
 	instances []ec2pkg.InstanceSummary
 	err       error
+}
+
+type ecsDataLoadedMsg struct {
+	services []ecspkg.ServiceSummary
+	err      error
 }
 
 // refreshTimerMsg is sent when it's time to refresh data
@@ -114,6 +121,31 @@ func (m Model) loadEC2Data() tea.Cmd {
 	}
 }
 
+// loadECSData is a command that loads ECS data and returns a message
+func (m Model) loadECSData() tea.Cmd {
+	return func() tea.Msg {
+		// Create context
+		ctx := context.Background()
+		
+		// Load AWS config
+		cfg := config.NewConfig(m.region)
+		awsConfig, err := config.LoadAWSConfig(ctx, cfg)
+		if err != nil {
+			return ecsDataLoadedMsg{err: err}
+		}
+		
+		// Create ECS client
+		ecsClient := ecspkg.NewClient(ecs.NewFromConfig(awsConfig))
+		
+		// Get service data
+		services, err := ecsClient.GetServices(ctx)
+		return ecsDataLoadedMsg{
+			services: services,
+			err:      err,
+		}
+	}
+}
+
 // refreshTimer is a command that triggers data refresh every minute
 func refreshTimer() tea.Cmd {
 	return tea.Tick(time.Minute, func(time.Time) tea.Msg {
@@ -135,6 +167,10 @@ func (m Model) refreshData() tea.Cmd {
 	
 	if m.showEC2 {
 		cmds = append(cmds, m.loadEC2Data())
+	}
+	
+	if m.showECS {
+		cmds = append(cmds, m.loadECSData())
 	}
 	
 	return tea.Batch(cmds...)

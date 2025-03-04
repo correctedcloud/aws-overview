@@ -7,6 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.29.7
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.43.15
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.206.0
+	github.com/aws/aws-sdk-go-v2/service/ecs v1.54.0
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.43.13
 	github.com/aws/aws-sdk-go-v2/service/rds v1.93.14
 	github.com/charmbracelet/bubbles v0.20.0

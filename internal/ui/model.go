@@ -11,6 +11,7 @@ import (
 
 	"github.com/correctedcloud/aws-overview/pkg/alb"
 	"github.com/correctedcloud/aws-overview/pkg/ec2"
+	"github.com/correctedcloud/aws-overview/pkg/ecs"
 	"github.com/correctedcloud/aws-overview/pkg/rds"
 )
 
@@ -54,17 +55,21 @@ type Model struct {
 	loadingALB      bool
 	loadingRDS      bool
 	loadingEC2      bool
+	loadingECS      bool
 	loadBalancers   []alb.LoadBalancerSummary
 	dbInstances     []rds.DBInstanceSummary
 	ec2Instances    []ec2.InstanceSummary
+	ecsServices     []ecs.ServiceSummary
 	albErr          error
 	rdsErr          error
 	ec2Err          error
+	ecsErr          error
 	width           int
 	height          int
 	showALB         bool
 	showRDS         bool
 	showEC2         bool
+	showECS         bool
 	region          string
 	activeTab       int
 	tabs            []string
@@ -72,7 +77,7 @@ type Model struct {
 }
 
 // NewModel creates a new UI model
-func NewModel(showALB, showRDS, showEC2 bool, region string) Model {
+func NewModel(showALB, showRDS, showEC2, showECS bool, region string) Model {
 	// Create tabs list
 	tabs := []string{"Overview"}
 	if showALB {
@@ -83,6 +88,9 @@ func NewModel(showALB, showRDS, showEC2 bool, region string) Model {
 	}
 	if showEC2 {
 		tabs = append(tabs, "EC2 Instances")
+	}
+	if showECS {
+		tabs = append(tabs, "ECS Services")
 	}
 
 	s := spinner.New()
@@ -98,9 +106,11 @@ func NewModel(showALB, showRDS, showEC2 bool, region string) Model {
 		loadingALB:  showALB,
 		loadingRDS:  showRDS,
 		loadingEC2:  showEC2,
+		loadingECS:  showECS,
 		showALB:     showALB,
 		showRDS:     showRDS,
 		showEC2:     showEC2,
+		showECS:     showECS,
 		region:      region,
 		activeTab:   0,
 		tabs:        tabs,
@@ -125,6 +135,10 @@ func (m Model) Init() tea.Cmd {
 	
 	if m.showEC2 {
 		cmds = append(cmds, m.loadEC2Data())
+	}
+	
+	if m.showECS {
+		cmds = append(cmds, m.loadECSData())
 	}
 
 	return tea.Batch(cmds...)
@@ -188,7 +202,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lastRefresh = time.Now()
 		
 		// Start data refresh
-		if !m.loadingALB && !m.loadingRDS && !m.loadingEC2 {
+		if !m.loadingALB && !m.loadingRDS && !m.loadingEC2 && !m.loadingECS {
 			cmds = append(cmds, m.refreshData())
 		}
 		
@@ -212,6 +226,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.ec2Instances = msg.instances
 		m.ec2Err = msg.err
 		m.updateViewportContent()
+		
+	case ecsDataLoadedMsg:
+		m.loadingECS = false
+		m.ecsServices = msg.services
+		m.ecsErr = msg.err
+		m.updateViewportContent()
 	}
 
 	return m, tea.Batch(cmds...)
@@ -233,6 +253,15 @@ func (m *Model) updateViewportContent() {
 	     (m.activeTab == 2 && !m.showRDS && m.showEC2) || 
 	     (m.activeTab == 3 && m.showEC2): // EC2 tab
 		content = m.renderEC2()
+	case (m.activeTab == 1 && !m.showALB && !m.showRDS && !m.showEC2 && m.showECS) ||
+	     (m.activeTab == 2 && !m.showALB && !m.showRDS && m.showECS) ||
+	     (m.activeTab == 2 && !m.showALB && !m.showEC2 && m.showECS) ||
+	     (m.activeTab == 2 && !m.showRDS && !m.showEC2 && m.showECS) ||
+	     (m.activeTab == 3 && !m.showALB && m.showECS) ||
+	     (m.activeTab == 3 && !m.showRDS && m.showECS) ||
+	     (m.activeTab == 3 && !m.showEC2 && m.showECS) ||
+	     (m.activeTab == 4 && m.showECS): // ECS tab
+		content = m.renderECS()
 	}
 
 	// Set the content for scrolling
@@ -411,8 +440,16 @@ func (m Model) renderOverview() string {
 		}
 	}
 
-	if !m.showALB && !m.showRDS && !m.showEC2 {
-		content += "No services selected. Use -alb=true, -rds=true, and/or -ec2=true flags."
+	if m.showECS {
+		if m.ecsErr != nil {
+			content += "❌ ECS Error: " + m.ecsErr.Error() + "\n\n"
+		} else {
+			content += "✅ ECS Services: " + ecs.GetServicesSummary(m.ecsServices) + "\n\n"
+		}
+	}
+
+	if !m.showALB && !m.showRDS && !m.showEC2 && !m.showECS {
+		content += "No services selected. Use -alb=true, -rds=true, -ec2=true, and/or -ecs=true flags."
 	}
 
 	return content
@@ -455,4 +492,17 @@ func (m Model) renderEC2() string {
 	}
 
 	return ec2.FormatInstances(m.ec2Instances)
+}
+
+// renderECS shows detailed ECS information
+func (m Model) renderECS() string {
+	if m.loadingECS {
+		return m.spinner.View() + " Loading ECS data..."
+	}
+
+	if m.ecsErr != nil {
+		return "Error loading ECS data: " + m.ecsErr.Error()
+	}
+
+	return ecs.FormatServices(m.ecsServices)
 }
