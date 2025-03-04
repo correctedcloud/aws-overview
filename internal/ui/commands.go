@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"time"
 
 	"github.com/charmbracelet/bubbletea"
 	
@@ -31,6 +32,9 @@ type ec2DataLoadedMsg struct {
 	instances []ec2pkg.InstanceSummary
 	err       error
 }
+
+// refreshTimerMsg is sent when it's time to refresh data
+type refreshTimerMsg struct{}
 
 // loadALBData is a command that loads ALB data and returns a message
 func (m Model) loadALBData() tea.Cmd {
@@ -108,4 +112,30 @@ func (m Model) loadEC2Data() tea.Cmd {
 			err:       err,
 		}
 	}
+}
+
+// refreshTimer is a command that triggers data refresh every minute
+func refreshTimer() tea.Cmd {
+	return tea.Tick(time.Minute, func(time.Time) tea.Msg {
+		return refreshTimerMsg{}
+	})
+}
+
+// refreshData triggers a refresh of all enabled data sources
+func (m Model) refreshData() tea.Cmd {
+	var cmds []tea.Cmd
+	
+	if m.showALB {
+		cmds = append(cmds, m.loadALBData())
+	}
+	
+	if m.showRDS {
+		cmds = append(cmds, m.loadRDSData())
+	}
+	
+	if m.showEC2 {
+		cmds = append(cmds, m.loadEC2Data())
+	}
+	
+	return tea.Batch(cmds...)
 }

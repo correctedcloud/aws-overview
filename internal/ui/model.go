@@ -2,6 +2,7 @@ package ui
 
 import (
 	"os"
+	"time"
 	
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -67,6 +68,7 @@ type Model struct {
 	region          string
 	activeTab       int
 	tabs            []string
+	lastRefresh     time.Time
 }
 
 // NewModel creates a new UI model
@@ -91,17 +93,18 @@ func NewModel(showALB, showRDS, showEC2 bool, region string) Model {
 	vp := viewport.New(80, 20)
 
 	return Model{
-		spinner:    s,
-		viewport:   vp,
-		loadingALB: showALB,
-		loadingRDS: showRDS,
-		loadingEC2: showEC2,
-		showALB:    showALB,
-		showRDS:    showRDS,
-		showEC2:    showEC2,
-		region:     region,
-		activeTab:  0,
-		tabs:       tabs,
+		spinner:     s,
+		viewport:    vp,
+		loadingALB:  showALB,
+		loadingRDS:  showRDS,
+		loadingEC2:  showEC2,
+		showALB:     showALB,
+		showRDS:     showRDS,
+		showEC2:     showEC2,
+		region:      region,
+		activeTab:   0,
+		tabs:        tabs,
+		lastRefresh: time.Now(),
 	}
 }
 
@@ -109,6 +112,7 @@ func NewModel(showALB, showRDS, showEC2 bool, region string) Model {
 func (m Model) Init() tea.Cmd {
 	cmds := []tea.Cmd{
 		m.spinner.Tick,
+		refreshTimer(),
 	}
 
 	if m.showALB {
@@ -157,6 +161,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.activeTab = (m.activeTab - 1 + len(m.tabs)) % len(m.tabs)
 			// Update content for the new tab
 			m.updateViewportContent()
+		case "r": // Manual refresh
+			cmds = append(cmds, m.refreshData())
 		}
 
 	case tea.WindowSizeMsg:
@@ -176,6 +182,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
 		cmds = append(cmds, cmd)
+		
+	case refreshTimerMsg:
+		// Update last refresh time
+		m.lastRefresh = time.Now()
+		
+		// Start data refresh
+		if !m.loadingALB && !m.loadingRDS && !m.loadingEC2 {
+			cmds = append(cmds, m.refreshData())
+		}
+		
+		// Schedule next refresh
+		cmds = append(cmds, refreshTimer())
 
 	case albDataLoadedMsg:
 		m.loadingALB = false
@@ -256,7 +274,7 @@ func (m Model) View() string {
 	// Show help text at the bottom
 	helpText := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#888888")).
-		Render("← → Navigate Tabs • ↑↓/j k Scroll • q Quit")
+		Render("← → Navigate Tabs • ↑↓/j k Scroll • r Refresh • q Quit")
 
 	// Ensure title and tabs are visible at the top with clear separation
 	title := titleStyle.Render("AWS Overview")
@@ -364,6 +382,9 @@ func (m Model) renderOverview() string {
 	if profile != "" {
 		content += "Profile: " + profile + "\n"
 	}
+	
+	// Display last refresh time
+	content += "Last refresh: " + m.lastRefresh.Format("15:04:05") + " (auto-refreshes every minute)\n"
 	content += "\n"
 
 	if m.showALB {
