@@ -83,6 +83,8 @@ func FormatServices(services []ServiceSummary) string {
 				healthIndicator = "🟢"
 			} else if service.RunningCount > 0 {
 				healthIndicator = "🟠"
+			} else if service.DesiredCount == 0 && service.RunningCount == 0 {
+				healthIndicator = "⚪"
 			}
 			
 			sb.WriteString(fmt.Sprintf("%s %s\n", healthIndicator, service.ServiceName))
