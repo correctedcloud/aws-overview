@@ -24,6 +24,13 @@ I built this primarily as a test of [Claude Code](https://github.com/anthropics/
 - Shows the CPU and memory usage over the past 1 hour for each RDS instance
 - Shows any recent errors in the DB error log
 
+### ECS
+
+- Lists all clusters and their associated services
+- Displays service status (like `RUNNING`/`DEPLOYING`)
+- Shows desired/running/pending task counts per service
+- Indicates network mode (bridge or awsvpc)
+
 ## Features
 
 - Interactive terminal UI with tabs
@@ -55,13 +62,16 @@ aws-overview
 aws-overview -region us-west-2
 
 # Show only ALB information
-aws-overview -rds=false -ec2=false
+aws-overview -rds=false -ec2=false -ecs=false
 
 # Show only RDS information
-aws-overview -alb=false -ec2=false
+aws-overview -alb=false -ec2=false -ecs=false
 
 # Show only EC2 information
-aws-overview -alb=false -rds=false
+aws-overview -alb=false -rds=false -ecs=false
+
+# Show only ECS information
+aws-overview -alb=false -rds=false -ec2=false
 
 # Get help
 aws-overview -h
