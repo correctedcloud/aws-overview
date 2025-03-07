@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -49,6 +50,9 @@ type InstanceSummary struct {
 func (c *Client) GetInstances(ctx context.Context) ([]InstanceSummary, error) {
 	var instances []InstanceSummary
 	var nextToken *string
+	var mutex sync.Mutex
+	var wg sync.WaitGroup
+	var fetchErr error
 
 	for {
 		resp, err := c.ec2Client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
@@ -58,54 +62,77 @@ func (c *Client) GetInstances(ctx context.Context) ([]InstanceSummary, error) {
 			return nil, fmt.Errorf("failed to describe instances: %w", err)
 		}
 
+		// Process reservations and instances in parallel
 		for _, reservation := range resp.Reservations {
-			for _, instance := range reservation.Instances {
-				// Skip terminated instances
-				if instance.State.Name == types.InstanceStateNameTerminated {
-					continue
-				}
+			// Process each reservation in parallel
+			wg.Add(1)
+			go func(res types.Reservation) {
+				defer wg.Done()
 
-				// Extract tags into a map
-				tags := make(map[string]string)
-				var name string
-				for _, tag := range instance.Tags {
-					tags[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
-					if aws.ToString(tag.Key) == "Name" {
-						name = aws.ToString(tag.Value)
+				// Create a local slice to store instances from this reservation
+				var reservationInstances []InstanceSummary
+
+				// Process each instance in the reservation
+				for _, instance := range res.Instances {
+					// Skip terminated instances
+					if instance.State.Name == types.InstanceStateNameTerminated {
+						continue
 					}
+
+					// Extract tags into a map
+					tags := make(map[string]string)
+					var name string
+					for _, tag := range instance.Tags {
+						tags[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
+						if aws.ToString(tag.Key) == "Name" {
+							name = aws.ToString(tag.Value)
+						}
+					}
+
+					// Extract security group names
+					var securityGroups []string
+					for _, sg := range instance.SecurityGroups {
+						securityGroups = append(securityGroups, aws.ToString(sg.GroupName))
+					}
+
+					// Create instance summary
+					summary := InstanceSummary{
+						InstanceID:       aws.ToString(instance.InstanceId),
+						InstanceType:     string(instance.InstanceType),
+						State:            string(instance.State.Name),
+						Name:             name,
+						PrivateIP:        aws.ToString(instance.PrivateIpAddress),
+						PublicIP:         aws.ToString(instance.PublicIpAddress),
+						LaunchTime:       aws.ToTime(instance.LaunchTime),
+						Platform:         getPlatform(instance),
+						VpcID:            aws.ToString(instance.VpcId),
+						SubnetID:         aws.ToString(instance.SubnetId),
+						SecurityGroups:   securityGroups,
+						Tags:             tags,
+						AvailabilityZone: getAvailabilityZone(instance),
+					}
+
+					reservationInstances = append(reservationInstances, summary)
 				}
 
-				// Extract security group names
-				var securityGroups []string
-				for _, sg := range instance.SecurityGroups {
-					securityGroups = append(securityGroups, aws.ToString(sg.GroupName))
-				}
-
-				// Create instance summary
-				summary := InstanceSummary{
-					InstanceID:       aws.ToString(instance.InstanceId),
-					InstanceType:     string(instance.InstanceType),
-					State:            string(instance.State.Name),
-					Name:             name,
-					PrivateIP:        aws.ToString(instance.PrivateIpAddress),
-					PublicIP:         aws.ToString(instance.PublicIpAddress),
-					LaunchTime:       aws.ToTime(instance.LaunchTime),
-					Platform:         getPlatform(instance),
-					VpcID:            aws.ToString(instance.VpcId),
-					SubnetID:         aws.ToString(instance.SubnetId),
-					SecurityGroups:   securityGroups,
-					Tags:             tags,
-					AvailabilityZone: getAvailabilityZone(instance),
-				}
-
-				instances = append(instances, summary)
-			}
+				// Safely append to the main instances slice
+				mutex.Lock()
+				instances = append(instances, reservationInstances...)
+				mutex.Unlock()
+			}(reservation)
 		}
 
 		nextToken = resp.NextToken
 		if nextToken == nil {
 			break
 		}
+	}
+
+	// Wait for all goroutines to complete
+	wg.Wait()
+
+	if fetchErr != nil {
+		return nil, fetchErr
 	}
 
 	return instances, nil
@@ -117,7 +144,7 @@ func getPlatform(instance types.Instance) string {
 	if instance.Platform != "" {
 		return string(instance.Platform)
 	}
-	
+
 	// Check platform details if platform is empty
 	if instance.PlatformDetails != nil {
 		details := aws.ToString(instance.PlatformDetails)
@@ -128,7 +155,7 @@ func getPlatform(instance types.Instance) string {
 			return "Windows"
 		}
 	}
-	
+
 	return "Unknown"
 }
 

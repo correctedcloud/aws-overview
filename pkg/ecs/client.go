@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -33,47 +34,68 @@ func NewClient(ecsClient ECSAPI) *Client {
 
 // ServiceSummary represents an ECS service summary
 type ServiceSummary struct {
-	ServiceName       string
-	ClusterName       string
-	Status            string
-	DesiredCount      int32
-	RunningCount      int32
-	PendingCount      int32
-	TaskDefinition    string
-	LaunchType        string
-	CreatedAt         time.Time
-	Tags              map[string]string
-	LoadBalancers     []string
-	HealthStatus      string
-	DeploymentStatus  string
-	NetworkMode       string
+	ServiceName      string
+	ClusterName      string
+	Status           string
+	DesiredCount     int32
+	RunningCount     int32
+	PendingCount     int32
+	TaskDefinition   string
+	LaunchType       string
+	CreatedAt        time.Time
+	Tags             map[string]string
+	LoadBalancers    []string
+	HealthStatus     string
+	DeploymentStatus string
+	NetworkMode      string
 }
 
 // ClusterInfo represents basic cluster information
 type ClusterInfo struct {
-	Name              string
-	Status            string
+	Name                string
+	Status              string
 	RegisteredInstances int32
 }
 
 // GetServices returns a list of ECS services from all clusters
 func (c *Client) GetServices(ctx context.Context) ([]ServiceSummary, error) {
-	var services []ServiceSummary
-
 	// Step 1: List all clusters
 	clusters, err := c.getClusters(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list clusters: %w", err)
 	}
 
-	// Step 2: For each cluster, get services
+	// Step 2: Process clusters in parallel using goroutines
+	var wg sync.WaitGroup
+	servicesCh := make(chan []ServiceSummary, len(clusters))
+	errorsCh := make(chan error, len(clusters))
+
 	for _, cluster := range clusters {
-		clusterServices, err := c.getClusterServices(ctx, cluster.Name)
-		if err != nil {
-			// Log error but continue with other clusters
-			fmt.Printf("Error getting services for cluster %s: %v\n", cluster.Name, err)
-			continue
-		}
+		wg.Add(1)
+		go func(clusterName string) {
+			defer wg.Done()
+
+			clusterServices, err := c.getClusterServices(ctx, clusterName)
+			if err != nil {
+				// Log error but don't fail the entire operation
+				fmt.Printf("Error getting services for cluster %s: %v\n", clusterName, err)
+				errorsCh <- fmt.Errorf("failed to get services for cluster %s: %w", clusterName, err)
+				return
+			}
+
+			// Send the cluster services to the channel
+			servicesCh <- clusterServices
+		}(cluster.Name)
+	}
+
+	// Wait for all goroutines to complete
+	wg.Wait()
+	close(servicesCh)
+	close(errorsCh)
+
+	// Collect all services from the channel
+	var services []ServiceSummary
+	for clusterServices := range servicesCh {
 		services = append(services, clusterServices...)
 	}
 
@@ -230,6 +252,6 @@ func getNetworkMode(service types.Service) string {
 	if service.NetworkConfiguration != nil && service.NetworkConfiguration.AwsvpcConfiguration != nil {
 		return "awsvpc"
 	}
-	
+
 	return "bridge" // Default for most ECS services
 }

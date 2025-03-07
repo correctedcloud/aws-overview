@@ -5,7 +5,6 @@
 - Run tests: `make test`
 - Run single test: `go test -v github.com/correctedcloud/aws-overview/pkg/alb -run TestGetLoadBalancers`
 - Run with coverage: `go test -cover ./...`
-- You can check command output by running `make build && ./aws-overview`
 
 ## Code Style Guidelines
 - **Formatting**: Use `gofmt` or `go fmt ./...` before committing
