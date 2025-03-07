@@ -23,8 +23,8 @@ func NewConfig(region string) *Config {
 		if region == "" {
 			region = os.Getenv("AWS_DEFAULT_REGION")
 			if region == "" {
-        // Assume a region is in the profile
-        return &Config{}
+				// Assume a region is in the profile
+				return &Config{}
 			}
 		}
 	}
@@ -39,11 +39,11 @@ func LoadAWSConfig(ctx context.Context, cfg *Config) (aws.Config, error) {
 	if err != nil {
 		return awsConfig, err
 	}
-	
+
 	// Update config region if empty (this happens when using AWS profile)
 	if cfg.Region == "" {
 		cfg.Region = awsConfig.Region
 	}
-	
+
 	return awsConfig, nil
 }

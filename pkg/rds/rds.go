@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-	
+
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 	cwtypes "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
@@ -31,12 +31,12 @@ type Client struct {
 
 // DBInstanceSummary represents a summary of an RDS instance
 type DBInstanceSummary struct {
-	Identifier  string
-	Engine      string
-	Status      string
-	Endpoint    string
-	CPUData     []float64
-	MemoryData  []float64
+	Identifier   string
+	Engine       string
+	Status       string
+	Endpoint     string
+	CPUData      []float64
+	MemoryData   []float64
 	RecentErrors []string
 }
 
@@ -99,15 +99,15 @@ func (c *Client) getDBInstanceSummary(ctx context.Context, instance types.DBInst
 		Engine:     *instance.Engine,
 		Status:     *instance.DBInstanceStatus,
 	}
-	
+
 	if instance.Endpoint != nil {
 		summary.Endpoint = fmt.Sprintf("%s:%d", *instance.Endpoint.Address, *instance.Endpoint.Port)
 	}
-	
+
 	// Use goroutines to fetch metrics in parallel
 	var wg sync.WaitGroup
 	var cpuErr, memoryErr, errorsErr error
-	
+
 	// Fetch CPU utilization data
 	wg.Add(1)
 	go func() {
@@ -119,7 +119,7 @@ func (c *Client) getDBInstanceSummary(ctx context.Context, instance types.DBInst
 		}
 		summary.CPUData = cpuData
 	}()
-	
+
 	// Fetch memory utilization data
 	wg.Add(1)
 	go func() {
@@ -131,7 +131,7 @@ func (c *Client) getDBInstanceSummary(ctx context.Context, instance types.DBInst
 		}
 		summary.MemoryData = memoryData
 	}()
-	
+
 	// Fetch recent errors
 	wg.Add(1)
 	go func() {
@@ -143,10 +143,10 @@ func (c *Client) getDBInstanceSummary(ctx context.Context, instance types.DBInst
 		}
 		summary.RecentErrors = recentErrors
 	}()
-	
+
 	// Wait for all goroutines to complete
 	wg.Wait()
-	
+
 	// Check for errors
 	if cpuErr != nil {
 		return DBInstanceSummary{}, cpuErr
@@ -157,7 +157,7 @@ func (c *Client) getDBInstanceSummary(ctx context.Context, instance types.DBInst
 	if errorsErr != nil {
 		return DBInstanceSummary{}, errorsErr
 	}
-	
+
 	return summary, nil
 }
 
@@ -165,10 +165,10 @@ func (c *Client) getDBInstanceSummary(ctx context.Context, instance types.DBInst
 func (c *Client) getMetricData(ctx context.Context, metricName string, instanceID string) ([]float64, error) {
 	endTime := time.Now()
 	startTime := endTime.Add(-1 * time.Hour)
-	
+
 	// Create a valid ID that starts with lowercase letter and contains only alphanumeric characters
 	metricQueryId := "m" + strings.ReplaceAll(strings.ToLower(metricName), "-", "_")
-	
+
 	result, err := c.cloudwatchClient.GetMetricData(ctx, &cloudwatch.GetMetricDataInput{
 		StartTime: &startTime,
 		EndTime:   &endTime,
@@ -192,11 +192,11 @@ func (c *Client) getMetricData(ctx context.Context, metricName string, instanceI
 			},
 		},
 	})
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to get metric data for %s: %w", metricName, err)
 	}
-	
+
 	if len(result.MetricDataResults) == 0 || len(result.MetricDataResults[0].Values) == 0 {
 		// For testing purposes, return sample data if no values are available
 		if metricName == "CPUUtilization" {
@@ -206,12 +206,12 @@ func (c *Client) getMetricData(ctx context.Context, metricName string, instanceI
 		}
 		return []float64{}, nil
 	}
-	
+
 	var data []float64
 	for _, value := range result.MetricDataResults[0].Values {
 		data = append(data, value)
 	}
-	
+
 	return data, nil
 }
 
@@ -222,27 +222,27 @@ func (c *Client) getMemoryUtilizationData(ctx context.Context, instanceID, insta
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// The getMetricData function now handles empty data by returning sample data for tests
 	// So this check should not be necessary but keeping it for safety
 	if len(freeMemoryData) == 0 {
 		// Return default data for tests instead of empty slice
 		return []float64{50.0, 47.5}, nil
 	}
-	
+
 	// Estimate total memory based on instance class
 	// This is a simplified approach; in a real application, you would determine the
 	// total memory more accurately based on instance class specifications
 	totalMemoryGB := getEstimatedMemoryForInstanceClass(instanceClass)
 	totalMemoryBytes := totalMemoryGB * 1024 * 1024 * 1024
-	
+
 	// Calculate memory utilization percentages
 	var memoryUtilizationData []float64
 	for _, freeMemory := range freeMemoryData {
 		utilizationPercent := 100 - ((freeMemory / totalMemoryBytes) * 100)
 		memoryUtilizationData = append(memoryUtilizationData, utilizationPercent)
 	}
-	
+
 	return memoryUtilizationData, nil
 }
 

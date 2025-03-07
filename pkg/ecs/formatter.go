@@ -15,12 +15,12 @@ func GetServicesSummary(services []ServiceSummary) string {
 	draining := 0
 	other := 0
 	healthyServices := 0
-	
+
 	clusters := make(map[string]bool)
 
 	for _, service := range services {
 		clusters[service.ClusterName] = true
-		
+
 		switch service.Status {
 		case "ACTIVE":
 			active++
@@ -29,7 +29,7 @@ func GetServicesSummary(services []ServiceSummary) string {
 		default:
 			other++
 		}
-		
+
 		// Count healthy services (running tasks match desired)
 		if service.RunningCount == service.DesiredCount && service.DesiredCount > 0 {
 			healthyServices++
@@ -65,16 +65,16 @@ func FormatServices(services []ServiceSummary) string {
 	// Format by cluster
 	for _, clusterName := range clusterNames {
 		clusterServices := servicesByCluster[clusterName]
-		
+
 		// Sort services by name within cluster
 		sort.Slice(clusterServices, func(i, j int) bool {
 			return clusterServices[i].ServiceName < clusterServices[j].ServiceName
 		})
-		
+
 		// Cluster header
 		sb.WriteString(fmt.Sprintf("🚀 Cluster: %s (%d services)\n", clusterName, len(clusterServices)))
 		sb.WriteString(strings.Repeat("-", 40) + "\n")
-		
+
 		// Format each service
 		for _, service := range clusterServices {
 			// Health status indicator
@@ -86,35 +86,35 @@ func FormatServices(services []ServiceSummary) string {
 			} else if service.DesiredCount == 0 && service.RunningCount == 0 {
 				healthIndicator = "⚪"
 			}
-			
+
 			sb.WriteString(fmt.Sprintf("%s %s\n", healthIndicator, service.ServiceName))
-			
+
 			// Status and deployment status
 			deploymentInfo := ""
 			if service.DeploymentStatus != "stable" {
 				deploymentInfo = fmt.Sprintf(" (deployment: %s)", service.DeploymentStatus)
 			}
 			sb.WriteString(fmt.Sprintf("   Status: %s%s\n", service.Status, deploymentInfo))
-			
+
 			// Task counts
-			sb.WriteString(fmt.Sprintf("   Tasks: %d/%d running (%d pending)\n", 
+			sb.WriteString(fmt.Sprintf("   Tasks: %d/%d running (%d pending)\n",
 				service.RunningCount, service.DesiredCount, service.PendingCount))
-			
+
 			// Task definition and launch type
-			sb.WriteString(fmt.Sprintf("   Task Definition: %s | Launch Type: %s | Network: %s\n", 
+			sb.WriteString(fmt.Sprintf("   Task Definition: %s | Launch Type: %s | Network: %s\n",
 				service.TaskDefinition, service.LaunchType, service.NetworkMode))
-			
+
 			// Created time & uptime
 			uptime := formatUptime(service.CreatedAt)
-			sb.WriteString(fmt.Sprintf("   Created: %s (%s ago)\n", 
+			sb.WriteString(fmt.Sprintf("   Created: %s (%s ago)\n",
 				service.CreatedAt.Format("2006-01-02 15:04:05"), uptime))
-			
+
 			// Load balancers
 			if len(service.LoadBalancers) > 0 {
-				sb.WriteString(fmt.Sprintf("   Load Balancers: %s\n", 
+				sb.WriteString(fmt.Sprintf("   Load Balancers: %s\n",
 					strings.Join(service.LoadBalancers, ", ")))
 			}
-			
+
 			// Format important tags
 			importantTags := []string{"Environment", "Project", "Owner", "Application"}
 			var tagStrings []string
@@ -123,14 +123,14 @@ func FormatServices(services []ServiceSummary) string {
 					tagStrings = append(tagStrings, fmt.Sprintf("%s: %s", tag, value))
 				}
 			}
-			
+
 			if len(tagStrings) > 0 {
 				sb.WriteString(fmt.Sprintf("   Tags: %s\n", strings.Join(tagStrings, " | ")))
 			}
-			
+
 			sb.WriteString("\n")
 		}
-		
+
 		// Add a separator between clusters
 		sb.WriteString("\n")
 	}
@@ -141,11 +141,11 @@ func FormatServices(services []ServiceSummary) string {
 // formatUptime formats the uptime of a service
 func formatUptime(createdTime time.Time) string {
 	duration := timeNow().Sub(createdTime)
-	
+
 	days := int(duration.Hours() / 24)
 	months := days / 30
 	years := months / 12
-	
+
 	if years > 0 {
 		return fmt.Sprintf("%dy %dm", years, months%12)
 	}
@@ -156,12 +156,12 @@ func formatUptime(createdTime time.Time) string {
 		hours := int(duration.Hours()) % 24
 		return fmt.Sprintf("%dd %dh", days, hours)
 	}
-	
+
 	hours := int(duration.Hours())
 	minutes := int(duration.Minutes()) % 60
 	if hours > 0 {
 		return fmt.Sprintf("%dh %dm", hours, minutes)
 	}
-	
+
 	return fmt.Sprintf("%dm", minutes)
 }

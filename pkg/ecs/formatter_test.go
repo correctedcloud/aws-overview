@@ -65,18 +65,18 @@ func TestGetServicesSummary(t *testing.T) {
 
 func TestFormatServices(t *testing.T) {
 	refTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
-	
+
 	// Backup and restore the original timeNow
 	oldTimeNow := timeNow
 	defer func() { timeNow = oldTimeNow }()
-	
+
 	// Set fixed time for test
 	timeNow = func() time.Time { return refTime.Add(24 * time.Hour) } // 1 day after refTime
-	
+
 	tests := []struct {
-		name      string
-		services  []ServiceSummary
-		contains  []string
+		name        string
+		services    []ServiceSummary
+		contains    []string
 		notContains []string
 	}{
 		{
@@ -88,16 +88,16 @@ func TestFormatServices(t *testing.T) {
 			name: "Multiple services across clusters",
 			services: []ServiceSummary{
 				{
-					ServiceName:     "api-service",
-					ClusterName:     "production",
-					Status:          "ACTIVE",
-					DesiredCount:    2,
-					RunningCount:    2,
-					TaskDefinition:  "api-task:1",
-					LaunchType:      "FARGATE",
-					CreatedAt:       refTime,
+					ServiceName:      "api-service",
+					ClusterName:      "production",
+					Status:           "ACTIVE",
+					DesiredCount:     2,
+					RunningCount:     2,
+					TaskDefinition:   "api-task:1",
+					LaunchType:       "FARGATE",
+					CreatedAt:        refTime,
 					DeploymentStatus: "stable",
-					NetworkMode:     "awsvpc",
+					NetworkMode:      "awsvpc",
 					Tags: map[string]string{
 						"Environment": "production",
 						"Project":     "demo",
@@ -105,29 +105,29 @@ func TestFormatServices(t *testing.T) {
 					LoadBalancers: []string{"api-tg"},
 				},
 				{
-					ServiceName:     "worker-service",
-					ClusterName:     "production",
-					Status:          "ACTIVE",
-					DesiredCount:    3,
-					RunningCount:    2,
-					PendingCount:    1,
-					TaskDefinition:  "worker-task:1",
-					LaunchType:      "EC2",
-					CreatedAt:       refTime.Add(-48 * time.Hour),
+					ServiceName:      "worker-service",
+					ClusterName:      "production",
+					Status:           "ACTIVE",
+					DesiredCount:     3,
+					RunningCount:     2,
+					PendingCount:     1,
+					TaskDefinition:   "worker-task:1",
+					LaunchType:       "EC2",
+					CreatedAt:        refTime.Add(-48 * time.Hour),
 					DeploymentStatus: "in-progress",
-					NetworkMode:     "bridge",
+					NetworkMode:      "bridge",
 				},
 				{
-					ServiceName:     "staging-api",
-					ClusterName:     "staging",
-					Status:          "ACTIVE",
-					DesiredCount:    1,
-					RunningCount:    0,
-					TaskDefinition:  "api-task:1",
-					LaunchType:      "FARGATE",
-					CreatedAt:       refTime,
+					ServiceName:      "staging-api",
+					ClusterName:      "staging",
+					Status:           "ACTIVE",
+					DesiredCount:     1,
+					RunningCount:     0,
+					TaskDefinition:   "api-task:1",
+					LaunchType:       "FARGATE",
+					CreatedAt:        refTime,
 					DeploymentStatus: "stable",
-					NetworkMode:     "awsvpc",
+					NetworkMode:      "awsvpc",
 				},
 			},
 			contains: []string{
@@ -152,13 +152,13 @@ func TestFormatServices(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := FormatServices(tt.services)
-			
+
 			for _, s := range tt.contains {
 				if !strings.Contains(got, s) {
 					t.Errorf("FormatServices() missing expected string: %q", s)
 				}
 			}
-			
+
 			for _, s := range tt.notContains {
 				if strings.Contains(got, s) {
 					t.Errorf("FormatServices() contains unexpected string: %q", s)
@@ -170,14 +170,14 @@ func TestFormatServices(t *testing.T) {
 
 func TestFormatUptime(t *testing.T) {
 	refTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
-	
+
 	// Backup and restore the original timeNow
 	oldTimeNow := timeNow
 	defer func() { timeNow = oldTimeNow }()
-	
+
 	// Set fixed time for test
 	timeNow = func() time.Time { return refTime }
-	
+
 	tests := []struct {
 		name    string
 		created time.Time
@@ -209,7 +209,7 @@ func TestFormatUptime(t *testing.T) {
 			want:    "1y 0m",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := formatUptime(tt.created)

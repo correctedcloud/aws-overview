@@ -49,8 +49,8 @@ func TestGetClusters(t *testing.T) {
 			descResponse: &ecs.DescribeClustersOutput{
 				Clusters: []types.Cluster{
 					{
-						ClusterName:                     aws.String("test-cluster"),
-						Status:                          aws.String("ACTIVE"),
+						ClusterName:                       aws.String("test-cluster"),
+						Status:                            aws.String("ACTIVE"),
 						RegisteredContainerInstancesCount: 5,
 					},
 				},
@@ -69,13 +69,13 @@ func TestGetClusters(t *testing.T) {
 			descResponse: &ecs.DescribeClustersOutput{
 				Clusters: []types.Cluster{
 					{
-						ClusterName:                     aws.String("test-cluster-1"),
-						Status:                          aws.String("ACTIVE"),
+						ClusterName:                       aws.String("test-cluster-1"),
+						Status:                            aws.String("ACTIVE"),
 						RegisteredContainerInstancesCount: 3,
 					},
 					{
-						ClusterName:                     aws.String("test-cluster-2"),
-						Status:                          aws.String("ACTIVE"),
+						ClusterName:                       aws.String("test-cluster-2"),
+						Status:                            aws.String("ACTIVE"),
 						RegisteredContainerInstancesCount: 2,
 					},
 				},
@@ -88,7 +88,7 @@ func TestGetClusters(t *testing.T) {
 			listResponse: &ecs.ListClustersOutput{
 				ClusterArns: []string{},
 			},
-			descResponse: &ecs.DescribeClustersOutput{},
+			descResponse:  &ecs.DescribeClustersOutput{},
 			expectedCount: 0,
 			wantErr:       false,
 		},
@@ -119,14 +119,14 @@ func TestGetClusters(t *testing.T) {
 
 func TestGetClusterServices(t *testing.T) {
 	refTime := time.Now()
-	
+
 	tests := []struct {
-		name               string
-		clusterName        string
-		listServicesResp   *ecs.ListServicesOutput
-		descServicesResp   *ecs.DescribeServicesOutput
-		expectedCount      int
-		wantErr            bool
+		name             string
+		clusterName      string
+		listServicesResp *ecs.ListServicesOutput
+		descServicesResp *ecs.DescribeServicesOutput
+		expectedCount    int
+		wantErr          bool
 	}{
 		{
 			name:        "Single service",
@@ -215,8 +215,8 @@ func TestGetClusterServices(t *testing.T) {
 				ServiceArns: []string{},
 			},
 			descServicesResp: &ecs.DescribeServicesOutput{},
-			expectedCount:   0,
-			wantErr:         false,
+			expectedCount:    0,
+			wantErr:          false,
 		},
 	}
 
@@ -225,14 +225,14 @@ func TestGetClusterServices(t *testing.T) {
 			client := NewClient(&mockECSAPI{
 				ListServicesFunc: func(ctx context.Context, params *ecs.ListServicesInput, optFns ...func(*ecs.Options)) (*ecs.ListServicesOutput, error) {
 					if params.Cluster == nil || *params.Cluster != tt.clusterName {
-						t.Errorf("ListServices() called with wrong cluster name: got %v, want %v", 
+						t.Errorf("ListServices() called with wrong cluster name: got %v, want %v",
 							aws.ToString(params.Cluster), tt.clusterName)
 					}
 					return tt.listServicesResp, nil
 				},
 				DescribeServicesFunc: func(ctx context.Context, params *ecs.DescribeServicesInput, optFns ...func(*ecs.Options)) (*ecs.DescribeServicesOutput, error) {
 					if params.Cluster == nil || *params.Cluster != tt.clusterName {
-						t.Errorf("DescribeServices() called with wrong cluster name: got %v, want %v", 
+						t.Errorf("DescribeServices() called with wrong cluster name: got %v, want %v",
 							aws.ToString(params.Cluster), tt.clusterName)
 					}
 					return tt.descServicesResp, nil
@@ -253,15 +253,15 @@ func TestGetClusterServices(t *testing.T) {
 
 func TestGetServices(t *testing.T) {
 	refTime := time.Now()
-	
+
 	tests := []struct {
-		name                string
-		listClustersResp    *ecs.ListClustersOutput
+		name                 string
+		listClustersResp     *ecs.ListClustersOutput
 		describeClustersResp *ecs.DescribeClustersOutput
-		listServicesResp    map[string]*ecs.ListServicesOutput
-		descServicesResp    map[string]*ecs.DescribeServicesOutput
-		expectedCount       int
-		wantErr             bool
+		listServicesResp     map[string]*ecs.ListServicesOutput
+		descServicesResp     map[string]*ecs.DescribeServicesOutput
+		expectedCount        int
+		wantErr              bool
 	}{
 		{
 			name: "Multiple clusters with services",

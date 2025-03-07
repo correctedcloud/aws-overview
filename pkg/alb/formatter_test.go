@@ -11,7 +11,7 @@ func TestFormatLoadBalancers(t *testing.T) {
 	if emptyResult != "No load balancers found" {
 		t.Errorf("Expected 'No load balancers found', got '%s'", emptyResult)
 	}
-	
+
 	// Test with actual summaries
 	summaries := []LoadBalancerSummary{
 		{
@@ -38,9 +38,9 @@ func TestFormatLoadBalancers(t *testing.T) {
 			},
 		},
 	}
-	
+
 	result := FormatLoadBalancers(summaries)
-	
+
 	// Validate the output contains expected elements
 	expectedElements := []string{
 		"LOAD BALANCERS",
@@ -49,7 +49,7 @@ func TestFormatLoadBalancers(t *testing.T) {
 		"✅ i-1234567890abcdef0:80 - healthy",
 		"❌ i-0987654321fedcba0:80 - unhealthy (Connection refused)",
 	}
-	
+
 	for _, expected := range expectedElements {
 		if !strings.Contains(result, expected) {
 			t.Errorf("Expected output to contain '%s', but it didn't", expected)
@@ -69,7 +69,7 @@ func TestGetStatusSymbol(t *testing.T) {
 		{"initial", "🔍"},
 		{"unknown", "❓"},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.status, func(t *testing.T) {
 			symbol := getStatusSymbol(tc.status)

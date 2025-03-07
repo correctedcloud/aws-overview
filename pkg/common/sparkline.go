@@ -10,11 +10,11 @@ func GenerateSparkline(data []float64, label string, height int) string {
 	if len(data) == 0 {
 		return "No data available"
 	}
-	
+
 	if height <= 0 {
 		height = 5 // Default height
 	}
-	
+
 	return asciigraph.Plot(
 		data,
 		asciigraph.Height(height),

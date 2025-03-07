@@ -85,14 +85,14 @@ func TestGetInstancesSummary(t *testing.T) {
 
 func TestFormatUptime(t *testing.T) {
 	refTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
-	
+
 	// Backup and restore the original timeNow
 	oldTimeNow := timeNow
 	defer func() { timeNow = oldTimeNow }()
-	
+
 	// Set fixed time for test
 	timeNow = func() time.Time { return refTime }
-	
+
 	tests := []struct {
 		name   string
 		launch time.Time

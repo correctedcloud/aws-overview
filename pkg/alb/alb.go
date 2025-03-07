@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	
+
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
 )
@@ -23,8 +23,8 @@ type Client struct {
 
 // LoadBalancerSummary represents a summary of a load balancer and its target groups
 type LoadBalancerSummary struct {
-	Name        string
-	DNSName     string
+	Name         string
+	DNSName      string
 	TargetGroups []TargetGroupSummary
 }
 
@@ -146,32 +146,32 @@ func (c *Client) getTargetGroupSummary(ctx context.Context, tg types.TargetGroup
 		Name: *tg.TargetGroupName,
 		ARN:  *tg.TargetGroupArn,
 	}
-	
+
 	healthResult, err := c.elbv2Client.DescribeTargetHealth(ctx, &elasticloadbalancingv2.DescribeTargetHealthInput{
 		TargetGroupArn: tg.TargetGroupArn,
 	})
 	if err != nil {
 		return TargetGroupSummary{}, fmt.Errorf("failed to describe target health for TG %s: %w", *tg.TargetGroupName, err)
 	}
-	
+
 	for _, target := range healthResult.TargetHealthDescriptions {
 		var port int32
 		if target.Target.Port != nil {
 			port = *target.Target.Port
 		}
-		
+
 		targetSummary := TargetSummary{
 			ID:     *target.Target.Id,
 			Port:   port,
 			Status: string(target.TargetHealth.State),
 		}
-		
+
 		if target.TargetHealth.Reason != "" {
 			targetSummary.Reason = string(target.TargetHealth.Reason)
 		}
-		
+
 		tgSummary.Targets = append(tgSummary.Targets, targetSummary)
 	}
-	
+
 	return tgSummary, nil
 }

@@ -11,21 +11,21 @@ func TestGenerateSparkline(t *testing.T) {
 	if emptyResult != "No data available" {
 		t.Errorf("Expected 'No data available', got '%s'", emptyResult)
 	}
-	
+
 	// Test with actual data
 	data := []float64{1, 2, 3, 4, 5}
 	result := GenerateSparkline(data, "Test Label", 3)
-	
+
 	// Check that the result contains the label
 	if !strings.Contains(result, "Test Label") {
 		t.Errorf("Expected sparkline to contain label 'Test Label', but it didn't")
 	}
-	
+
 	// Check that the result is not empty
 	if len(result) < 10 {
 		t.Errorf("Expected non-empty sparkline, got '%s'", result)
 	}
-	
+
 	// Test with zero height (should use default)
 	result = GenerateSparkline(data, "Test", 0)
 	if len(result) < 10 {
@@ -43,7 +43,7 @@ func TestFormatPercentage(t *testing.T) {
 		{100, "100.00%"},
 		{-10.5, "-10.50%"},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(FormatFloat(tc.value), func(t *testing.T) {
 			result := FormatPercentage(tc.value)
@@ -64,7 +64,7 @@ func TestFormatFloat(t *testing.T) {
 		{100, "100.00"},
 		{-10.5, "-10.50"},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(FormatFloat(tc.value), func(t *testing.T) {
 			result := FormatFloat(tc.value)
@@ -86,7 +86,7 @@ func TestFormatFloatWithPrecision(t *testing.T) {
 		{50.123, 3, "50.123"},
 		{50.123, 4, "50.1230"},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(FormatFloat(tc.value), func(t *testing.T) {
 			result := FormatFloatWithPrecision(tc.value, tc.precision)

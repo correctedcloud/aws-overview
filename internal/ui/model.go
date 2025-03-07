@@ -3,7 +3,7 @@ package ui
 import (
 	"os"
 	"time"
-	
+
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/bubbletea"
@@ -17,63 +17,63 @@ import (
 
 var (
 	titleStyle = lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("#FAFAFA")).
-		Background(lipgloss.Color("#7D56F4")).
-		Padding(0, 1)
+			Bold(true).
+			Foreground(lipgloss.Color("#FAFAFA")).
+			Background(lipgloss.Color("#7D56F4")).
+			Padding(0, 1)
 
 	tabStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FAFAFA")).
-		Background(lipgloss.Color("#888888")).
-		Padding(0, 1)
+			Foreground(lipgloss.Color("#FAFAFA")).
+			Background(lipgloss.Color("#888888")).
+			Padding(0, 1)
 
 	activeTabStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FAFAFA")).
-		Background(lipgloss.Color("#7D56F4")).
-		Padding(0, 1).
-		Bold(true)
+			Foreground(lipgloss.Color("#FAFAFA")).
+			Background(lipgloss.Color("#7D56F4")).
+			Padding(0, 1).
+			Bold(true)
 
 	contentStyle = lipgloss.NewStyle().
-		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#7D56F4")).
-		Padding(1, 2) // MaxWidth is applied in View() method to ensure borders render properly
-		
+			BorderStyle(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("#7D56F4")).
+			Padding(1, 2) // MaxWidth is applied in View() method to ensure borders render properly
+
 	tabGap = lipgloss.NewStyle().Padding(0, 1)
-	
+
 	headerStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FAFAFA")).
-		Background(lipgloss.Color("#333333")).
-		Width(100).
-		Padding(0, 1).
-		Bold(true)
+			Foreground(lipgloss.Color("#FAFAFA")).
+			Background(lipgloss.Color("#333333")).
+			Width(100).
+			Padding(0, 1).
+			Bold(true)
 )
 
 // Model is the main UI model
 type Model struct {
-	spinner         spinner.Model
-	viewport        viewport.Model
-	loadingALB      bool
-	loadingRDS      bool
-	loadingEC2      bool
-	loadingECS      bool
-	loadBalancers   []alb.LoadBalancerSummary
-	dbInstances     []rds.DBInstanceSummary
-	ec2Instances    []ec2.InstanceSummary
-	ecsServices     []ecs.ServiceSummary
-	albErr          error
-	rdsErr          error
-	ec2Err          error
-	ecsErr          error
-	width           int
-	height          int
-	showALB         bool
-	showRDS         bool
-	showEC2         bool
-	showECS         bool
-	region          string
-	activeTab       int
-	tabs            []string
-	lastRefresh     time.Time
+	spinner       spinner.Model
+	viewport      viewport.Model
+	loadingALB    bool
+	loadingRDS    bool
+	loadingEC2    bool
+	loadingECS    bool
+	loadBalancers []alb.LoadBalancerSummary
+	dbInstances   []rds.DBInstanceSummary
+	ec2Instances  []ec2.InstanceSummary
+	ecsServices   []ecs.ServiceSummary
+	albErr        error
+	rdsErr        error
+	ec2Err        error
+	ecsErr        error
+	width         int
+	height        int
+	showALB       bool
+	showRDS       bool
+	showEC2       bool
+	showECS       bool
+	region        string
+	activeTab     int
+	tabs          []string
+	lastRefresh   time.Time
 }
 
 // NewModel creates a new UI model
@@ -132,11 +132,11 @@ func (m Model) Init() tea.Cmd {
 	if m.showRDS {
 		cmds = append(cmds, m.loadRDSData())
 	}
-	
+
 	if m.showEC2 {
 		cmds = append(cmds, m.loadEC2Data())
 	}
-	
+
 	if m.showECS {
 		cmds = append(cmds, m.loadECSData())
 	}
@@ -151,9 +151,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		// Let viewport handle keys first if not a tab-switching key
-		if msg.String() != "tab" && msg.String() != "right" && msg.String() != "l" && 
-		   msg.String() != "shift+tab" && msg.String() != "left" && msg.String() != "h" && 
-		   msg.String() != "q" && msg.String() != "ctrl+c" {
+		if msg.String() != "tab" && msg.String() != "right" && msg.String() != "l" &&
+			msg.String() != "shift+tab" && msg.String() != "left" && msg.String() != "h" &&
+			msg.String() != "q" && msg.String() != "ctrl+c" {
 			var cmd tea.Cmd
 			m.viewport, cmd = m.viewport.Update(msg)
 			if cmd != nil {
@@ -161,7 +161,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				break
 			}
 		}
-		
+
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
@@ -182,13 +182,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		
+
 		// Update viewport height and width
-		headerHeight := 3 // Persistent header + Title + tabs
-		footerHeight := 1 // Help text
-		m.viewport.Width = m.width - 4  // Account for padding
+		headerHeight := 3                                              // Persistent header + Title + tabs
+		footerHeight := 1                                              // Help text
+		m.viewport.Width = m.width - 4                                 // Account for padding
 		m.viewport.Height = m.height - headerHeight - footerHeight - 2 // Account for margins
-		
+
 		// Update content for the viewport with the new dimensions
 		m.updateViewportContent()
 
@@ -196,16 +196,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
 		cmds = append(cmds, cmd)
-		
+
 	case refreshTimerMsg:
 		// Update last refresh time
 		m.lastRefresh = time.Now()
-		
+
 		// Start data refresh
 		if !m.loadingALB && !m.loadingRDS && !m.loadingEC2 && !m.loadingECS {
 			cmds = append(cmds, m.refreshData())
 		}
-		
+
 		// Schedule next refresh
 		cmds = append(cmds, refreshTimer())
 
@@ -220,13 +220,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dbInstances = msg.dbInstances
 		m.rdsErr = msg.err
 		m.updateViewportContent()
-		
+
 	case ec2DataLoadedMsg:
 		m.loadingEC2 = false
 		m.ec2Instances = msg.instances
 		m.ec2Err = msg.err
 		m.updateViewportContent()
-		
+
 	case ecsDataLoadedMsg:
 		m.loadingECS = false
 		m.ecsServices = msg.services
@@ -248,19 +248,19 @@ func (m *Model) updateViewportContent() {
 		content = m.renderALB()
 	case (m.activeTab == 1 && !m.showALB && m.showRDS) || (m.activeTab == 2 && m.showRDS): // RDS tab
 		content = m.renderRDS()
-	case (m.activeTab == 1 && !m.showALB && !m.showRDS && m.showEC2) || 
-	     (m.activeTab == 2 && !m.showALB && m.showEC2) || 
-	     (m.activeTab == 2 && !m.showRDS && m.showEC2) || 
-	     (m.activeTab == 3 && m.showEC2): // EC2 tab
+	case (m.activeTab == 1 && !m.showALB && !m.showRDS && m.showEC2) ||
+		(m.activeTab == 2 && !m.showALB && m.showEC2) ||
+		(m.activeTab == 2 && !m.showRDS && m.showEC2) ||
+		(m.activeTab == 3 && m.showEC2): // EC2 tab
 		content = m.renderEC2()
 	case (m.activeTab == 1 && !m.showALB && !m.showRDS && !m.showEC2 && m.showECS) ||
-	     (m.activeTab == 2 && !m.showALB && !m.showRDS && m.showECS) ||
-	     (m.activeTab == 2 && !m.showALB && !m.showEC2 && m.showECS) ||
-	     (m.activeTab == 2 && !m.showRDS && !m.showEC2 && m.showECS) ||
-	     (m.activeTab == 3 && !m.showALB && m.showECS) ||
-	     (m.activeTab == 3 && !m.showRDS && m.showECS) ||
-	     (m.activeTab == 3 && !m.showEC2 && m.showECS) ||
-	     (m.activeTab == 4 && m.showECS): // ECS tab
+		(m.activeTab == 2 && !m.showALB && !m.showRDS && m.showECS) ||
+		(m.activeTab == 2 && !m.showALB && !m.showEC2 && m.showECS) ||
+		(m.activeTab == 2 && !m.showRDS && !m.showEC2 && m.showECS) ||
+		(m.activeTab == 3 && !m.showALB && m.showECS) ||
+		(m.activeTab == 3 && !m.showRDS && m.showECS) ||
+		(m.activeTab == 3 && !m.showEC2 && m.showECS) ||
+		(m.activeTab == 4 && m.showECS): // ECS tab
 		content = m.renderECS()
 	}
 
@@ -327,32 +327,32 @@ func getRegionFlag(region string) string {
 	// Map AWS regions to flag emoji with location suffix
 	regionToFlag := map[string]string{
 		// North America
-		"us-east-1":      "🇺🇸",
-		"us-east-2":      "🇺🇸",
-		"us-west-1":      "🇺🇸",
-		"us-west-2":      "🇺🇸",
-		"us-gov-east-1":  "🇺🇸",
-		"us-gov-west-1":  "🇺🇸",
-		"mx-central-1":   "🇲🇽",
-		
+		"us-east-1":     "🇺🇸",
+		"us-east-2":     "🇺🇸",
+		"us-west-1":     "🇺🇸",
+		"us-west-2":     "🇺🇸",
+		"us-gov-east-1": "🇺🇸",
+		"us-gov-west-1": "🇺🇸",
+		"mx-central-1":  "🇲🇽",
+
 		// South America
-		"sa-east-1":      "🇧🇷",
-		
+		"sa-east-1": "🇧🇷",
+
 		// Europe
-		"eu-west-1":      "🇮🇪",
-		"eu-west-2":      "🇬🇧",
-		"eu-west-3":      "🇫🇷",
-		"eu-central-1":   "🇩🇪",
-		"eu-central-2":   "🇨🇭",
-		"eu-south-1":     "🇮🇹",
-		"eu-south-2":     "🇪🇸",
-		"eu-north-1":     "🇸🇪",
-		
+		"eu-west-1":    "🇮🇪",
+		"eu-west-2":    "🇬🇧",
+		"eu-west-3":    "🇫🇷",
+		"eu-central-1": "🇩🇪",
+		"eu-central-2": "🇨🇭",
+		"eu-south-1":   "🇮🇹",
+		"eu-south-2":   "🇪🇸",
+		"eu-north-1":   "🇸🇪",
+
 		// Middle East
-		"me-central-1":   "🇦🇪",
-		"me-south-1":     "🇧🇭",
-		"il-central-1":   "🇮🇱",
-		
+		"me-central-1": "🇦🇪",
+		"me-south-1":   "🇧🇭",
+		"il-central-1": "🇮🇱",
+
 		// Asia Pacific
 		"ap-southeast-1": "🇸🇬",
 		"ap-southeast-2": "🇦🇺",
@@ -366,24 +366,24 @@ func getRegionFlag(region string) string {
 		"ap-northeast-1": "🇯🇵",
 		"ap-northeast-2": "🇰🇷",
 		"ap-northeast-3": "🇯🇵",
-		
+
 		// Canada
-		"ca-central-1":   "🇨🇦",
-		"ca-west-1":      "🇨🇦",
-		
+		"ca-central-1": "🇨🇦",
+		"ca-west-1":    "🇨🇦",
+
 		// Africa
-		"af-south-1":     "🇿🇦",
-		
+		"af-south-1": "🇿🇦",
+
 		// China
 		"cn-north-1":     "🇨🇳",
 		"cn-northwest-1": "🇨🇳",
 	}
-	
+
 	flag, ok := regionToFlag[region]
 	if !ok {
 		return "🌐" // Default global symbol if region not found
 	}
-	
+
 	return flag
 }
 
@@ -405,13 +405,13 @@ func (m Model) renderOverview() string {
 	var content string
 	flag := getRegionFlag(m.region)
 	content += "Region: " + flag + " " + m.region + "\n"
-	
+
 	// Display AWS profile if set
 	profile := getAWSProfile()
 	if profile != "" {
 		content += "Profile: " + profile + "\n"
 	}
-	
+
 	// Display last refresh time
 	content += "Last refresh: " + m.lastRefresh.Format("15:04:05") + " (auto-refreshes every minute)\n"
 	content += "\n"

@@ -3,16 +3,16 @@ package alb
 import (
 	"context"
 	"testing"
-	
+
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
 )
 
 // Mock ELBV2 client
 type mockELBV2Client struct {
-	describeLoadBalancersFunc   func(ctx context.Context, params *elasticloadbalancingv2.DescribeLoadBalancersInput, optFns ...func(*elasticloadbalancingv2.Options)) (*elasticloadbalancingv2.DescribeLoadBalancersOutput, error)
-	describeTargetGroupsFunc    func(ctx context.Context, params *elasticloadbalancingv2.DescribeTargetGroupsInput, optFns ...func(*elasticloadbalancingv2.Options)) (*elasticloadbalancingv2.DescribeTargetGroupsOutput, error)
-	describeTargetHealthFunc    func(ctx context.Context, params *elasticloadbalancingv2.DescribeTargetHealthInput, optFns ...func(*elasticloadbalancingv2.Options)) (*elasticloadbalancingv2.DescribeTargetHealthOutput, error)
+	describeLoadBalancersFunc func(ctx context.Context, params *elasticloadbalancingv2.DescribeLoadBalancersInput, optFns ...func(*elasticloadbalancingv2.Options)) (*elasticloadbalancingv2.DescribeLoadBalancersOutput, error)
+	describeTargetGroupsFunc  func(ctx context.Context, params *elasticloadbalancingv2.DescribeTargetGroupsInput, optFns ...func(*elasticloadbalancingv2.Options)) (*elasticloadbalancingv2.DescribeTargetGroupsOutput, error)
+	describeTargetHealthFunc  func(ctx context.Context, params *elasticloadbalancingv2.DescribeTargetHealthInput, optFns ...func(*elasticloadbalancingv2.Options)) (*elasticloadbalancingv2.DescribeTargetHealthOutput, error)
 }
 
 func (m *mockELBV2Client) DescribeLoadBalancers(ctx context.Context, params *elasticloadbalancingv2.DescribeLoadBalancersInput, optFns ...func(*elasticloadbalancingv2.Options)) (*elasticloadbalancingv2.DescribeLoadBalancersOutput, error) {
@@ -32,14 +32,14 @@ func TestGetLoadBalancers(t *testing.T) {
 	lbName := "test-lb"
 	lbARN := "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/test-lb/1234567890abcdef"
 	lbDNSName := "test-lb-1234567890.us-east-1.elb.amazonaws.com"
-	
+
 	tgName := "test-tg"
 	tgARN := "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/test-tg/1234567890abcdef"
-	
+
 	targetID := "i-1234567890abcdef0"
 	targetPort := int32(80)
 	targetStatus := types.TargetHealthStateEnumHealthy
-	
+
 	// Create mock client
 	mockClient := &mockELBV2Client{
 		describeLoadBalancersFunc: func(ctx context.Context, params *elasticloadbalancingv2.DescribeLoadBalancersInput, optFns ...func(*elasticloadbalancingv2.Options)) (*elasticloadbalancingv2.DescribeLoadBalancersOutput, error) {
@@ -79,55 +79,55 @@ func TestGetLoadBalancers(t *testing.T) {
 			}, nil
 		},
 	}
-	
+
 	// Create ALB client
 	client := &Client{
 		elbv2Client: mockClient,
 	}
-	
+
 	// Call the method being tested
 	lbs, err := client.GetLoadBalancers(context.Background())
-	
+
 	// Assertions
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	
+
 	if len(lbs) != 1 {
 		t.Fatalf("Expected 1 load balancer, got %d", len(lbs))
 	}
-	
+
 	lb := lbs[0]
 	if lb.Name != lbName {
 		t.Errorf("Expected load balancer name %s, got %s", lbName, lb.Name)
 	}
-	
+
 	if lb.DNSName != lbDNSName {
 		t.Errorf("Expected load balancer DNS name %s, got %s", lbDNSName, lb.DNSName)
 	}
-	
+
 	if len(lb.TargetGroups) != 1 {
 		t.Fatalf("Expected 1 target group, got %d", len(lb.TargetGroups))
 	}
-	
+
 	tg := lb.TargetGroups[0]
 	if tg.Name != tgName {
 		t.Errorf("Expected target group name %s, got %s", tgName, tg.Name)
 	}
-	
+
 	if len(tg.Targets) != 1 {
 		t.Fatalf("Expected 1 target, got %d", len(tg.Targets))
 	}
-	
+
 	target := tg.Targets[0]
 	if target.ID != targetID {
 		t.Errorf("Expected target ID %s, got %s", targetID, target.ID)
 	}
-	
+
 	if target.Port != targetPort {
 		t.Errorf("Expected target port %d, got %d", targetPort, target.Port)
 	}
-	
+
 	if target.Status != string(targetStatus) {
 		t.Errorf("Expected target status %s, got %s", targetStatus, target.Status)
 	}
