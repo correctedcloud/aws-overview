@@ -104,10 +104,10 @@ func FormatServices(services []ServiceSummary) string {
 			sb.WriteString(fmt.Sprintf("   Task Definition: %s | Launch Type: %s | Network: %s\n",
 				service.TaskDefinition, service.LaunchType, service.NetworkMode))
 
-			// Created time & uptime
-			uptime := formatUptime(service.CreatedAt)
-			sb.WriteString(fmt.Sprintf("   Created: %s (%s ago)\n",
-				service.CreatedAt.Format("2006-01-02 15:04:05"), uptime))
+			// Last deployment time
+			lastDeploymentTime := formatUptime(service.LastDeploymentTime)
+			sb.WriteString(fmt.Sprintf("   Last Deployment: %s (%s ago)\n",
+				service.LastDeploymentTime.Format("2006-01-02 15:04:05"), lastDeploymentTime))
 
 			// Load balancers
 			if len(service.LoadBalancers) > 0 {

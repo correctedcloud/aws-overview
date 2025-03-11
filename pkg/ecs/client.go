@@ -34,20 +34,21 @@ func NewClient(ecsClient ECSAPI) *Client {
 
 // ServiceSummary represents an ECS service summary
 type ServiceSummary struct {
-	ServiceName      string
-	ClusterName      string
-	Status           string
-	DesiredCount     int32
-	RunningCount     int32
-	PendingCount     int32
-	TaskDefinition   string
-	LaunchType       string
-	CreatedAt        time.Time
-	Tags             map[string]string
-	LoadBalancers    []string
-	HealthStatus     string
-	DeploymentStatus string
-	NetworkMode      string
+	ServiceName        string
+	ClusterName        string
+	Status             string
+	DesiredCount       int32
+	RunningCount       int32
+	PendingCount       int32
+	TaskDefinition     string
+	LaunchType         string
+	CreatedAt          time.Time
+	LastDeploymentTime time.Time
+	Tags               map[string]string
+	LoadBalancers      []string
+	HealthStatus       string
+	DeploymentStatus   string
+	NetworkMode        string
 }
 
 // ClusterInfo represents basic cluster information
@@ -196,12 +197,29 @@ func (c *Client) getClusterServices(ctx context.Context, clusterName string) ([]
 				}
 			}
 
-			// Get deployment status
+			// Get deployment status and time
 			deploymentStatus := "stable"
-			if len(service.Deployments) > 1 {
-				deploymentStatus = "in-progress"
-			} else if len(service.Deployments) == 1 && service.Deployments[0].RolloutState != types.DeploymentRolloutStateCompleted {
-				deploymentStatus = string(service.Deployments[0].RolloutState)
+			var lastDeploymentTime time.Time
+
+			if len(service.Deployments) > 0 {
+				// Use the most recent deployment's updated time
+				if service.Deployments[0].UpdatedAt != nil {
+					lastDeploymentTime = aws.ToTime(service.Deployments[0].UpdatedAt)
+				} else if service.Deployments[0].CreatedAt != nil {
+					lastDeploymentTime = aws.ToTime(service.Deployments[0].CreatedAt)
+				} else {
+					// Default to service creation time if no deployment timestamps
+					lastDeploymentTime = aws.ToTime(service.CreatedAt)
+				}
+
+				if len(service.Deployments) > 1 {
+					deploymentStatus = "in-progress"
+				} else if service.Deployments[0].RolloutState != types.DeploymentRolloutStateCompleted {
+					deploymentStatus = string(service.Deployments[0].RolloutState)
+				}
+			} else {
+				// No deployments, use service creation time
+				lastDeploymentTime = aws.ToTime(service.CreatedAt)
 			}
 
 			// Get network mode from task definition ARN (just the name)
@@ -219,20 +237,21 @@ func (c *Client) getClusterServices(ctx context.Context, clusterName string) ([]
 			}
 
 			services = append(services, ServiceSummary{
-				ServiceName:      aws.ToString(service.ServiceName),
-				ClusterName:      clusterName,
-				Status:           aws.ToString(service.Status),
-				DesiredCount:     service.DesiredCount,
-				RunningCount:     service.RunningCount,
-				PendingCount:     service.PendingCount,
-				TaskDefinition:   taskDefName,
-				LaunchType:       string(service.LaunchType),
-				CreatedAt:        aws.ToTime(service.CreatedAt),
-				Tags:             tags,
-				LoadBalancers:    loadBalancers,
-				HealthStatus:     healthStatus,
-				DeploymentStatus: deploymentStatus,
-				NetworkMode:      getNetworkMode(service),
+				ServiceName:        aws.ToString(service.ServiceName),
+				ClusterName:        clusterName,
+				Status:             aws.ToString(service.Status),
+				DesiredCount:       service.DesiredCount,
+				RunningCount:       service.RunningCount,
+				PendingCount:       service.PendingCount,
+				TaskDefinition:     taskDefName,
+				LaunchType:         string(service.LaunchType),
+				CreatedAt:          aws.ToTime(service.CreatedAt),
+				LastDeploymentTime: lastDeploymentTime,
+				Tags:               tags,
+				LoadBalancers:      loadBalancers,
+				HealthStatus:       healthStatus,
+				DeploymentStatus:   deploymentStatus,
+				NetworkMode:        getNetworkMode(service),
 			})
 		}
 
