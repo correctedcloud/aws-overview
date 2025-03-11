@@ -213,24 +213,40 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.loadingALB = false
 		m.loadBalancers = msg.loadBalancers
 		m.albErr = msg.err
+		// Update region if it was empty and we got it from AWS config
+		if m.region == "" && msg.region != "" {
+			m.region = msg.region
+		}
 		m.updateViewportContent()
 
 	case rdsDataLoadedMsg:
 		m.loadingRDS = false
 		m.dbInstances = msg.dbInstances
 		m.rdsErr = msg.err
+		// Update region if it was empty and we got it from AWS config
+		if m.region == "" && msg.region != "" {
+			m.region = msg.region
+		}
 		m.updateViewportContent()
 
 	case ec2DataLoadedMsg:
 		m.loadingEC2 = false
 		m.ec2Instances = msg.instances
 		m.ec2Err = msg.err
+		// Update region if it was empty and we got it from AWS config
+		if m.region == "" && msg.region != "" {
+			m.region = msg.region
+		}
 		m.updateViewportContent()
 
 	case ecsDataLoadedMsg:
 		m.loadingECS = false
 		m.ecsServices = msg.services
 		m.ecsErr = msg.err
+		// Update region if it was empty and we got it from AWS config
+		if m.region == "" && msg.region != "" {
+			m.region = msg.region
+		}
 		m.updateViewportContent()
 	}
 

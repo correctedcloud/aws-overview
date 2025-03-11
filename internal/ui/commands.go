@@ -23,21 +23,25 @@ import (
 type albDataLoadedMsg struct {
 	loadBalancers []alb.LoadBalancerSummary
 	err           error
+	region        string
 }
 
 type rdsDataLoadedMsg struct {
 	dbInstances []rds.DBInstanceSummary
 	err         error
+	region      string
 }
 
 type ec2DataLoadedMsg struct {
 	instances []ec2pkg.InstanceSummary
 	err       error
+	region    string
 }
 
 type ecsDataLoadedMsg struct {
 	services []ecspkg.ServiceSummary
 	err      error
+	region   string
 }
 
 // refreshTimerMsg is sent when it's time to refresh data
@@ -64,6 +68,7 @@ func (m Model) loadALBData() tea.Cmd {
 		return albDataLoadedMsg{
 			loadBalancers: lbs,
 			err:           err,
+			region:        cfg.Region, // Pass the potentially updated region
 		}
 	}
 }
@@ -92,6 +97,7 @@ func (m Model) loadRDSData() tea.Cmd {
 		return rdsDataLoadedMsg{
 			dbInstances: instances,
 			err:         err,
+			region:      cfg.Region, // Pass the potentially updated region
 		}
 	}
 }
@@ -117,6 +123,7 @@ func (m Model) loadEC2Data() tea.Cmd {
 		return ec2DataLoadedMsg{
 			instances: instances,
 			err:       err,
+			region:    cfg.Region, // Pass the potentially updated region
 		}
 	}
 }
@@ -142,6 +149,7 @@ func (m Model) loadECSData() tea.Cmd {
 		return ecsDataLoadedMsg{
 			services: services,
 			err:      err,
+			region:   cfg.Region, // Pass the potentially updated region
 		}
 	}
 }
