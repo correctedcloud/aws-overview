@@ -101,7 +101,7 @@ func FormatServices(services []ServiceSummary) string {
 				service.RunningCount, service.DesiredCount, service.PendingCount))
 
 			// Task definition and launch type
-			sb.WriteString(fmt.Sprintf("   Task Definition: %s | Launch Type: %s | Network: %s\n",
+			sb.WriteString(fmt.Sprintf("   Task Definition: %s | %s | %s\n",
 				service.TaskDefinition, service.LaunchType, service.NetworkMode))
 
 			// Last deployment time
