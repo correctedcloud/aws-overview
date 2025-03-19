@@ -13,6 +13,7 @@ import (
 	"github.com/correctedcloud/aws-overview/pkg/ec2"
 	"github.com/correctedcloud/aws-overview/pkg/ecs"
 	"github.com/correctedcloud/aws-overview/pkg/rds"
+	"github.com/correctedcloud/aws-overview/pkg/sqs"
 )
 
 var (
@@ -56,20 +57,24 @@ type Model struct {
 	loadingRDS    bool
 	loadingEC2    bool
 	loadingECS    bool
+	loadingSQS    bool
 	loadBalancers []alb.LoadBalancerSummary
 	dbInstances   []rds.DBInstanceSummary
 	ec2Instances  []ec2.InstanceSummary
 	ecsServices   []ecs.ServiceSummary
+	sqsQueues     []sqs.QueueSummary
 	albErr        error
 	rdsErr        error
 	ec2Err        error
 	ecsErr        error
+	sqsErr        error
 	width         int
 	height        int
 	showALB       bool
 	showRDS       bool
 	showEC2       bool
 	showECS       bool
+	showSQS       bool
 	region        string
 	activeTab     int
 	tabs          []string
@@ -77,7 +82,7 @@ type Model struct {
 }
 
 // NewModel creates a new UI model
-func NewModel(showALB, showRDS, showEC2, showECS bool, region string) Model {
+func NewModel(showALB, showRDS, showEC2, showECS, showSQS bool, region string) Model {
 	// Create tabs list
 	tabs := []string{"Overview"}
 	if showALB {
@@ -91,6 +96,9 @@ func NewModel(showALB, showRDS, showEC2, showECS bool, region string) Model {
 	}
 	if showECS {
 		tabs = append(tabs, "ECS Services")
+	}
+	if showSQS {
+		tabs = append(tabs, "SQS Queues")
 	}
 
 	s := spinner.New()
@@ -107,10 +115,12 @@ func NewModel(showALB, showRDS, showEC2, showECS bool, region string) Model {
 		loadingRDS:  showRDS,
 		loadingEC2:  showEC2,
 		loadingECS:  showECS,
+		loadingSQS:  showSQS,
 		showALB:     showALB,
 		showRDS:     showRDS,
 		showEC2:     showEC2,
 		showECS:     showECS,
+		showSQS:     showSQS,
 		region:      region,
 		activeTab:   0,
 		tabs:        tabs,
@@ -139,6 +149,10 @@ func (m Model) Init() tea.Cmd {
 
 	if m.showECS {
 		cmds = append(cmds, m.loadECSData())
+	}
+
+	if m.showSQS {
+		cmds = append(cmds, m.loadSQSData())
 	}
 
 	return tea.Batch(cmds...)
@@ -202,7 +216,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lastRefresh = time.Now()
 
 		// Start data refresh
-		if !m.loadingALB && !m.loadingRDS && !m.loadingEC2 && !m.loadingECS {
+		if !m.loadingALB && !m.loadingRDS && !m.loadingEC2 && !m.loadingECS && !m.loadingSQS {
 			cmds = append(cmds, m.refreshData())
 		}
 
@@ -248,6 +262,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.region = msg.region
 		}
 		m.updateViewportContent()
+
+	case sqsDataLoadedMsg:
+		m.loadingSQS = false
+		m.sqsQueues = msg.queues
+		m.sqsErr = msg.err
+		// Update region if it was empty and we got it from AWS config
+		if m.region == "" && msg.region != "" {
+			m.region = msg.region
+		}
+		m.updateViewportContent()
 	}
 
 	return m, tea.Batch(cmds...)
@@ -262,12 +286,12 @@ func (m *Model) updateViewportContent() {
 		content = m.renderOverview()
 	case m.activeTab == 1 && m.showALB: // Load Balancers tab
 		content = m.renderALB()
-	case (m.activeTab == 1 && !m.showALB && m.showRDS) || (m.activeTab == 2 && m.showRDS): // RDS tab
+	case (m.activeTab == 1 && !m.showALB && m.showRDS) || (m.activeTab == 2 && m.showALB && m.showRDS): // RDS tab
 		content = m.renderRDS()
 	case (m.activeTab == 1 && !m.showALB && !m.showRDS && m.showEC2) ||
 		(m.activeTab == 2 && !m.showALB && m.showEC2) ||
 		(m.activeTab == 2 && !m.showRDS && m.showEC2) ||
-		(m.activeTab == 3 && m.showEC2): // EC2 tab
+		(m.activeTab == 3 && m.showALB && m.showRDS && m.showEC2): // EC2 tab
 		content = m.renderEC2()
 	case (m.activeTab == 1 && !m.showALB && !m.showRDS && !m.showEC2 && m.showECS) ||
 		(m.activeTab == 2 && !m.showALB && !m.showRDS && m.showECS) ||
@@ -276,8 +300,11 @@ func (m *Model) updateViewportContent() {
 		(m.activeTab == 3 && !m.showALB && m.showECS) ||
 		(m.activeTab == 3 && !m.showRDS && m.showECS) ||
 		(m.activeTab == 3 && !m.showEC2 && m.showECS) ||
-		(m.activeTab == 4 && m.showECS): // ECS tab
+		(m.activeTab == 4 && m.showALB && m.showRDS && m.showEC2 && m.showECS): // ECS tab
 		content = m.renderECS()
+	case m.activeTab >= 1 && m.activeTab <= 5 && m.showSQS &&
+		((m.activeTab == len(m.tabs)-1) || m.tabs[m.activeTab] == "SQS Queues"): // SQS tab
+		content = m.renderSQS()
 	}
 
 	// Set the content for scrolling
@@ -464,7 +491,15 @@ func (m Model) renderOverview() string {
 		}
 	}
 
-	if !m.showALB && !m.showRDS && !m.showEC2 && !m.showECS {
+	if m.showSQS {
+		if m.sqsErr != nil {
+			content += "❌ SQS Error: " + m.sqsErr.Error() + "\n\n"
+		} else {
+			content += "✅ SQS Queues: " + sqs.GetQueuesSummary(m.sqsQueues) + "\n\n"
+		}
+	}
+
+	if !m.showALB && !m.showRDS && !m.showEC2 && !m.showECS && !m.showSQS {
 		content += "No services selected. Use -alb=true, -rds=true, -ec2=true, and/or -ecs=true flags."
 	}
 
@@ -521,4 +556,17 @@ func (m Model) renderECS() string {
 	}
 
 	return ecs.FormatServices(m.ecsServices)
+}
+
+// renderSQS shows detailed SQS information
+func (m Model) renderSQS() string {
+	if m.loadingSQS {
+		return m.spinner.View() + " Loading SQS data..."
+	}
+
+	if m.sqsErr != nil {
+		return "Error loading SQS data: " + m.sqsErr.Error()
+	}
+
+	return sqs.FormatQueues(m.sqsQueues)
 }

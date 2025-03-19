@@ -11,12 +11,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 	rdssvc "github.com/aws/aws-sdk-go-v2/service/rds"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
 
 	"github.com/correctedcloud/aws-overview/internal/config"
 	"github.com/correctedcloud/aws-overview/pkg/alb"
 	ec2pkg "github.com/correctedcloud/aws-overview/pkg/ec2"
 	ecspkg "github.com/correctedcloud/aws-overview/pkg/ecs"
 	"github.com/correctedcloud/aws-overview/pkg/rds"
+	sqspkg "github.com/correctedcloud/aws-overview/pkg/sqs"
 )
 
 // Message types for bubbletea
@@ -42,6 +44,12 @@ type ecsDataLoadedMsg struct {
 	services []ecspkg.ServiceSummary
 	err      error
 	region   string
+}
+
+type sqsDataLoadedMsg struct {
+	queues []sqspkg.QueueSummary
+	err    error
+	region string
 }
 
 // refreshTimerMsg is sent when it's time to refresh data
@@ -161,6 +169,35 @@ func refreshTimer() tea.Cmd {
 	})
 }
 
+// loadSQSData is a command that loads SQS data and returns a message
+func (m Model) loadSQSData() tea.Cmd {
+	return func() tea.Msg {
+		// Create context
+		ctx := context.Background()
+
+		// Load AWS config
+		cfg := config.NewConfig(m.region)
+		awsConfig, err := config.LoadAWSConfig(ctx, cfg)
+		if err != nil {
+			return sqsDataLoadedMsg{err: err}
+		}
+
+		// Create SQS client
+		sqsClient := sqspkg.NewClient(
+			sqs.NewFromConfig(awsConfig),
+			cloudwatch.NewFromConfig(awsConfig),
+		)
+
+		// Get queues data
+		queues, err := sqsClient.GetQueues(ctx)
+		return sqsDataLoadedMsg{
+			queues: queues,
+			err:    err,
+			region: cfg.Region, // Pass the potentially updated region
+		}
+	}
+}
+
 // refreshData triggers a refresh of all enabled data sources
 func (m Model) refreshData() tea.Cmd {
 	var cmds []tea.Cmd
@@ -179,6 +216,10 @@ func (m Model) refreshData() tea.Cmd {
 
 	if m.showECS {
 		cmds = append(cmds, m.loadECSData())
+	}
+
+	if m.showSQS {
+		cmds = append(cmds, m.loadSQSData())
 	}
 
 	return tea.Batch(cmds...)

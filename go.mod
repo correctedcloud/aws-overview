@@ -10,6 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.54.0
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.43.13
 	github.com/aws/aws-sdk-go-v2/service/rds v1.93.14
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.38.1
 	github.com/charmbracelet/bubbles v0.20.0
 	github.com/charmbracelet/bubbletea v1.3.4
 	github.com/charmbracelet/lipgloss v1.0.0
