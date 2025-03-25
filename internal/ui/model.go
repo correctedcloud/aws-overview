@@ -63,7 +63,7 @@ var (
 			BorderStyle(lipgloss.RoundedBorder()).
 			BorderForeground(secondaryColor).
 			Margin(1, 0, 0, 0).
-			Padding(1, 2) // MaxWidth is applied in View() method to ensure borders render properly
+			Padding(1, 2)
 
 	tabGap = lipgloss.NewStyle().Padding(0, 1)
 
