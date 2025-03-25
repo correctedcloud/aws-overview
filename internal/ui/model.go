@@ -354,20 +354,14 @@ func (m Model) View() string {
 	}
 	tabBar := lipgloss.JoinHorizontal(lipgloss.Top, renderedTabs...)
 
-	// Calculate appropriate width based on terminal size
-	contentWidth := m.width - 4
-	if contentWidth > 200 {
-		contentWidth = 200 // Limit maximum width for readability
-	}
-
 	// Make tab bar more prominent
 	tabBar = lipgloss.NewStyle().Margin(0, 0, 1, 0).Render(tabBar)
 
 	// Use viewport for scrollable content
 	viewportContent := m.viewport.View()
 
-	// Apply content styling with proper border rendering
-	contentStyleCopy := contentStyle.Copy().Width(contentWidth)
+	// Apply content styling with proper border rendering using full width
+	contentStyleCopy := contentStyle.Copy().Width(m.width - 4) // Subtract padding
 	styledContent := contentStyleCopy.Render(viewportContent)
 
 	// Show help text at the bottom
